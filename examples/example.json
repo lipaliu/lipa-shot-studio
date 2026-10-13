@@ -1,0 +1,156 @@
+{
+  "title": "最后一封信 · 示例",
+  "script": "内景 办公室 夜\n林乔把辞职信推到陈总面前，手仍按在信封边缘。\n陈总：你想清楚了？\n林乔没有收回手，抬眼看他。\n林乔：我想清楚的是，不能再等你想清楚。\n陈总低头看信封。窗外车辆驶过，光影掠过桌面。\n林乔松开手，等他的回答。",
+  "style": "写实影像，克制表演，冷暖光对照",
+  "aspect": "9:16",
+  "shots": [
+    {
+      "speakingCps": 4,
+      "actionSeconds": 3,
+      "pauseSeconds": 1,
+      "overlap": true,
+      "style": "写实影像，低饱和暖灰与冷窗光",
+      "artDirection": "同一张办公桌，信封位于两人之间，窗在林乔右后侧",
+      "lighting": "窗外冷光从林乔右后方进入；桌上实景灯在信封旁形成柔和暖光池，背景低一层亮度",
+      "ambience": "空调低鸣与远处车流声连续",
+      "sfx": "无额外强调音效",
+      "music": "无额外配乐，保留环境声",
+      "status": "draft",
+      "sceneIndex": 0,
+      "id": "S01-001",
+      "sourceLines": [
+        1,
+        2
+      ],
+      "purpose": "建立空间，辞职信成为行动中心",
+      "description": "双人中景。林乔在画面左侧，陈总在右侧。林乔把信封推到桌面中央，手指仍压住信封。",
+      "performance": "林乔推信时平稳，到桌面中央后手指停住；陈总视线由手转向信封。",
+      "framing": "平视双人中景，信封和两人上身可辨认",
+      "camera": "固定机位，保留两人与桌面关系",
+      "coverage": "建立镜头，林乔左、陈总右；后续机位保持人物轴线同侧",
+      "continuityIn": "林乔握信，陈总坐在桌后",
+      "continuityOut": "信在桌面中央，林乔手压信封边缘",
+      "dialogue": [],
+      "timingReason": "推信及停住约3秒，再留1秒读清手与信封的关系"
+    },
+    {
+      "speakingCps": 4,
+      "actionSeconds": 1,
+      "pauseSeconds": 1.5,
+      "overlap": true,
+      "style": "写实影像，低饱和暖灰与冷窗光",
+      "artDirection": "同一张办公桌，信封位于两人之间，窗在林乔右后侧",
+      "lighting": "窗外冷光从林乔右后方进入；桌上实景灯在信封旁形成柔和暖光池，背景低一层亮度",
+      "ambience": "空调低鸣与远处车流声连续",
+      "sfx": "无额外强调音效",
+      "music": "无额外配乐，保留环境声",
+      "status": "draft",
+      "sceneIndex": 0,
+      "id": "S01-002",
+      "sourceLines": [
+        3
+      ],
+      "purpose": "观察陈总对辞职决定的试探",
+      "description": "越过林乔左肩看陈总。他从信封抬眼，问她是否想清楚。",
+      "performance": "语气平稳，视线落在林乔脸上，问完没有伸手拿信。",
+      "framing": "陈总过肩中近景，林乔肩部虚化在左前景",
+      "camera": "固定机位；焦点保持在陈总眼部",
+      "coverage": "正打陈总，视线向画面左侧；配对 S01-003 林乔的右向视线，同侧轴线",
+      "continuityIn": "信封未移动，林乔手未松",
+      "continuityOut": "陈总等待，视线停在林乔身上",
+      "dialogue": [
+        {
+          "sourceLine": 3,
+          "speaker": "陈总",
+          "text": "你想清楚了？"
+        }
+      ],
+      "timingReason": "5个中文字按约4字/秒；抬眼与对白重叠，问后留1.5秒"
+    },
+    {
+      "speakingCps": 4,
+      "actionSeconds": 2,
+      "pauseSeconds": 1.5,
+      "overlap": true,
+      "style": "写实影像，低饱和暖灰与冷窗光",
+      "artDirection": "同一张办公桌，信封位于两人之间，窗在林乔右后侧",
+      "lighting": "窗外冷光从林乔右后方进入；桌上实景灯在信封旁形成柔和暖光池，背景低一层亮度",
+      "ambience": "空调低鸣与远处车流声连续",
+      "sfx": "无额外强调音效",
+      "music": "无额外配乐，保留环境声",
+      "status": "draft",
+      "sceneIndex": 0,
+      "id": "S01-003",
+      "sourceLines": [
+        4,
+        5
+      ],
+      "purpose": "让回答改变关系，完整保留她的表态",
+      "description": "反打林乔近景。她抬眼看陈总，身体不动，说完整句话。",
+      "performance": "先确认对方在看自己，再开口；不能再等几字稍放慢，句末保持目光，不夸张表情。",
+      "framing": "平视林乔近景，面部与肩部清楚；不强求读到画外手指细节",
+      "camera": "固定机位，保留完整回答与停顿",
+      "coverage": "反打林乔，视线向画面右侧；对应 S01-002，同侧轴线",
+      "continuityIn": "林乔手压信封，尚未回答",
+      "continuityOut": "说完仍对视，手未松开",
+      "dialogue": [
+        {
+          "sourceLine": 5,
+          "speaker": "林乔",
+          "text": "我想清楚的是，不能再等你想清楚。"
+        }
+      ],
+      "timingReason": "14个中文字按约4字/秒；抬眼与对白部分重叠，句后留1.5秒"
+    },
+    {
+      "speakingCps": 4,
+      "actionSeconds": 3,
+      "pauseSeconds": 2,
+      "overlap": true,
+      "style": "写实影像，低饱和暖灰与冷窗光",
+      "artDirection": "同一张办公桌，信封位于两人之间，窗在林乔右后侧",
+      "lighting": "窗外冷光从林乔右后方进入；桌上实景灯在信封旁形成柔和暖光池，背景低一层亮度",
+      "ambience": "空调低鸣与远处车流声连续",
+      "sfx": "外侧汽车驶过；衣料轻响，松手不加夸张音效",
+      "music": "无额外配乐，保留环境声",
+      "status": "draft",
+      "sceneIndex": 0,
+      "id": "S01-004",
+      "sourceLines": [
+        6,
+        7
+      ],
+      "purpose": "用松手完成交付，让沉默留下压力",
+      "description": "回到开场双人中景。陈总低头看信封，车灯光影掠过桌面。林乔松开手，信封留在两人之间。",
+      "performance": "陈总低头沉默；林乔松手后留在原位等待，不急着离开。",
+      "framing": "平视双人中景，信封与撤开的手可见",
+      "camera": "固定机位，保留松手后的停顿",
+      "coverage": "返回同侧建立机位；林乔左、陈总右，未越轴",
+      "continuityIn": "两人对视，林乔手压信封",
+      "continuityOut": "陈总看信，林乔手已离开，信封静止在桌面中央",
+      "dialogue": [],
+      "timingReason": "低头、车灯与松手部分并行约3秒，再留2秒沉默"
+    }
+  ],
+  "outline": {
+    "title": "最后一封信",
+    "style": "写实影像",
+    "look": "暖灰办公空间与窗外冷光分层，信封是两人之间的视觉焦点",
+    "characters": [
+      "林乔：提交辞职信的员工",
+      "陈总：接收辞职信的上司"
+    ],
+    "assumptions": [
+      "左右位置与灯位是可调整的示例拍法"
+    ],
+    "scenes": [
+      {
+        "name": "办公室 · 夜",
+        "sourceStart": 1,
+        "sourceEnd": 7,
+        "geography": "两人隔桌相对，林乔左、陈总右；窗在林乔右后方，机位保持轴线同侧",
+        "beat": "推信—试探—表态—松手等待"
+      }
+    ]
+  }
+}

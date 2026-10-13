@@ -1,0 +1,134 @@
+{
+  "library": "Higgsfield Skills · OSideMedia 社区版",
+  "upstream": "https://github.com/OSideMedia/higgsfield-ai-prompt-skill",
+  "snapshotDate": "2026-10-14",
+  "license": "MIT",
+  "source": "本机已安装的 Skills 快照；保留原文与校验值，不声称为官方服务",
+  "skills": [
+    {
+      "name": "higgsfield-shotlist-director",
+      "label": "导演分镜",
+      "version": "1.2.0",
+      "sha256": "692401d8685bfecc0b96377898b5bc7ce54ef8d6a257c49ff218d6c81a4e175b",
+      "file": "higgsfield-shotlist-director.md",
+      "ranges": [
+        [
+          63,
+          73
+        ],
+        [
+          112,
+          144
+        ],
+        [
+          156,
+          173
+        ],
+        [
+          185,
+          187
+        ],
+        [
+          195,
+          200
+        ],
+        [
+          261,
+          278
+        ],
+        [
+          318,
+          320
+        ]
+      ]
+    },
+    {
+      "name": "higgsfield-acting",
+      "label": "人物表演",
+      "version": "1.2.0",
+      "sha256": "e76afce5b10f5488b8a2e8a9e2adcace699f39e4f79a02c37c9091021a37da17",
+      "file": "higgsfield-acting.md",
+      "ranges": [
+        [
+          62,
+          109
+        ],
+        [
+          191,
+          237
+        ],
+        [
+          332,
+          356
+        ],
+        [
+          423,
+          441
+        ]
+      ]
+    },
+    {
+      "name": "higgsfield-camera",
+      "label": "摄影与运镜",
+      "version": "3.5.0",
+      "sha256": "7ca41cd588c5e036cca6299cd2832ae75e331f434e42c0b0c200ca5c7bd4b99d",
+      "file": "higgsfield-camera.md",
+      "ranges": [
+        [
+          33,
+          101
+        ],
+        [
+          134,
+          189
+        ],
+        [
+          275,
+          291
+        ]
+      ]
+    },
+    {
+      "name": "higgsfield-style",
+      "label": "画风与光线",
+      "version": "3.1.0",
+      "sha256": "08c5da6000d70512b2cd125437b851db2079bd6b6eb17f7102a036515e0136b4",
+      "file": "higgsfield-style.md",
+      "ranges": [
+        [
+          92,
+          148
+        ],
+        [
+          173,
+          189
+        ],
+        [
+          203,
+          224
+        ]
+      ]
+    },
+    {
+      "name": "higgsfield-audio",
+      "label": "声音设计",
+      "version": "3.7.0",
+      "sha256": "54c79f1e33d5bd23fc69534e00b3dd1b37dd371ef83de7410f56f806097368b1",
+      "file": "higgsfield-audio.md",
+      "ranges": [
+        [
+          51,
+          66
+        ],
+        [
+          72,
+          117
+        ],
+        [
+          170,
+          193
+        ]
+      ]
+    }
+  ]
+}
