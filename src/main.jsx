@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Clapperboard,
-  Plus,
   ArrowUpRight,
   ArrowRight,
   Settings2,
@@ -17,14 +16,12 @@ import {
   LoaderCircle,
   Play,
   AlertCircle,
-  PanelLeftClose,
   Film,
   Clock3,
   CheckCheck,
   BookOpen,
   RotateCcw,
   Square,
-  Eye,
   Sparkles,
 } from "lucide-react";
 import "./style.css";
@@ -64,9 +61,7 @@ function App() {
     [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [busy, setBusy] = useState(false),
-    [side, setSide] = useState(
-      () => !window.matchMedia("(max-width:800px)").matches,
-    ),
+    [showHistory, setShowHistory] = useState(false),
     [selected, setSelected] = useState(null),
     [filter, setFilter] = useState("all"),
     [sceneFilter, setSceneFilter] = useState("all");
@@ -118,11 +113,16 @@ function App() {
   }
   async function open(id) {
     await act(async () => {
-      setProject(await api("/projects/" + id));
+      const p = await api("/projects/" + id);
+      setProject(p);
+      setScript(p.script);
+      setTitle(p.title);
+      setStyle(p.style);
+      setAspect(p.aspect);
       setSelected(null);
       setFilter("all");
       setSceneFilter("all");
-      if (window.matchMedia("(max-width:800px)").matches) setSide(false);
+      setShowHistory(false);
     });
   }
   async function generate(e) {
@@ -140,6 +140,8 @@ function App() {
       });
       setProject(p);
       setSelected(null);
+      setFilter("all");
+      setSceneFilter("all");
       await load();
     });
   }
@@ -158,7 +160,14 @@ function App() {
   }
   async function example() {
     await act(async () => {
-      setProject(await post("/example"));
+      const p = await post("/example");
+      setProject(p);
+      setScript(p.script);
+      setTitle(p.title);
+      setStyle(p.style);
+      setAspect(p.aspect);
+      setFilter("all");
+      setSceneFilter("all");
       await load();
     });
   }
@@ -234,601 +243,570 @@ function App() {
       </div>
     );
   return (
-    <div className={cn("app", !side && "collapsed")}>
-      {side && (
-        <button
-          className="mobile-nav-backdrop"
-          aria-label="收起项目列表"
-          onClick={() => setSide(false)}
-        />
-      )}
-      <aside className="sidebar">
+    <div className="simple-app">
+      <header className="simple-header">
         <Logo />
-        <button
-          className="new-project"
-          onClick={() => {
-            setProject(null);
-            setSelected(null);
-            setError("");
-            if (window.matchMedia("(max-width:800px)").matches) setSide(false);
-          }}
-        >
-          <Plus size={17} /> 新建分镜
-        </button>
-        <div className="nav-label">
-          我的剧本 <span>{projects.length}</span>
-        </div>
-        <nav>
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              className={cn("project-link", project?.id === p.id && "active")}
-              onClick={() => open(p.id)}
-            >
-              <FileText size={16} />
-              <span>
-                <strong>{p.title}</strong>
-                <small>
-                  {p.isExample ? "示例项目" : projectStatus[p.status]} ·{" "}
-                  {p.shots} 镜
-                </small>
-              </span>
-            </button>
-          ))}
-          {!projects.length && (
-            <p className="nav-empty">
-              你的剧本与分镜
-              <br />
-              会保存在这里。
-            </p>
-          )}
-        </nav>
-        <div className="side-bottom">
-          <span className="rule-dot" /> 导演 · 摄影 · 美术 · 声音
-          <small>一份剧本，一套连贯的拍法。</small>
-        </div>
-      </aside>
-      <main>
-        <header className="topbar">
-          <div className="breadcrumb">
-            <button
-              className="icon-button"
-              aria-label="切换侧栏"
-              onClick={() => setSide(!side)}
-            >
-              <PanelLeftClose size={18} />
-            </button>
-            <span>创作工作台</span>
-            <ChevronRight size={14} />
-            <strong>{project?.title || "新建分镜"}</strong>
-          </div>
+        <div className="header-actions">
+          <button className="text-button" onClick={() => setShowHistory(true)}>
+            <BookOpen size={16} />
+            历史分镜
+          </button>
           <button
             className="model-button"
             onClick={() => setShowSettings(true)}
           >
-            <span
-              className={cn(
-                "dot",
-                settings?.[settings?.provider]?.configured && "online",
-              )}
-            />
-            {providers[settings?.provider] || "模型"}
-            {settings?.[settings?.provider]?.configured ? " 已配置" : " 待配置"}
             <Settings2 size={15} />
+            {providers[settings?.provider] || "模型"} ·{" "}
+            {settings?.[settings?.provider]?.configured ? "已配置" : "待配置"}
           </button>
-        </header>
-        {error && (
-          <div className="error-banner" role="alert">
-            <AlertCircle size={17} />
-            <span>{error}</span>
-            <button aria-label="关闭提示" onClick={() => setError("")}>
-              <X size={15} />
+        </div>
+      </header>
+      {error && (
+        <div className="error-banner" role="alert">
+          <AlertCircle size={17} />
+          <span>{error}</span>
+          <button aria-label="关闭提示" onClick={() => setError("")}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
+      <main className="two-windows">
+        <form className="input-window" onSubmit={generate}>
+          <div className="window-heading">
+            <h1>
+              <span>01</span>剧本
+            </h1>
+            <button
+              type="button"
+              className="text-button"
+              disabled={busy || project?.status === "running"}
+              onClick={() => upload.current.click()}
+            >
+              <Upload size={14} />
+              导入
             </button>
           </div>
-        )}
-        {!project ? (
-          <div className="new-view">
-            <div className="intro">
-              <div className="eyebrow">
-                <span /> LIPA DIRECTOR'S DESK
-              </div>
-              <h1>让剧本，成为镜头。</h1>
-              <p>放入剧本。把画面、表演、光线与声音，一起想清楚。</p>
-            </div>
-            <form onSubmit={generate} className="composer">
-              <section className="script-pane">
-                <div className="pane-heading">
-                  <h2>
-                    <FileText size={19} /> 输入剧本
-                  </h2>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => upload.current.click()}
-                  >
-                    <Upload size={15} /> 导入文件
-                  </button>
-                  <input
-                    ref={upload}
-                    type="file"
-                    accept=".txt,.md,.docx"
-                    hidden
-                    onChange={(e) => {
-                      importFile(e.target.files[0]);
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
+          <input
+            ref={upload}
+            type="file"
+            accept=".txt,.md,.docx"
+            hidden
+            onChange={(e) => {
+              importFile(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
+          <textarea
+            className="simple-script"
+            aria-label="剧本正文"
+            placeholder={
+              "把剧本粘贴在这里…\n\n保留场景、动作和对白，直接点下方生成。"
+            }
+            value={script}
+            onChange={(e) => setScript(e.target.value)}
+            maxLength={30000}
+            minLength={10}
+            required
+            disabled={project?.status === "running"}
+          />
+          <div className="input-count">
+            <span>TXT / Word / Markdown</span>
+            <span>{script.length.toLocaleString()} / 30,000</span>
+          </div>
+          <details className="optional-settings">
+            <summary>
+              更多选项 <span>画幅、画风</span>
+              <ChevronDown size={14} />
+            </summary>
+            <div>
+              <label>
+                剧本名称
                 <input
-                  className="title-input"
-                  aria-label="剧本名称"
-                  placeholder="给这个故事一个名字（选填）"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  placeholder="自动命名"
                   maxLength={100}
+                  disabled={project?.status === "running"}
                 />
+              </label>
+              <label>
+                画幅
+                <select
+                  value={aspect}
+                  onChange={(e) => setAspect(e.target.value)}
+                  disabled={project?.status === "running"}
+                >
+                  <option>9:16</option>
+                  <option>16:9</option>
+                  <option>1:1</option>
+                </select>
+              </label>
+              <label>
+                画风
                 <textarea
-                  className="script-input"
-                  aria-label="剧本正文"
-                  placeholder={
-                    "在这里粘贴完整剧本…\n\n场次、动作、对白都可以直接保留。\n系统会按戏剧动作拆镜，并保留每个镜头对应的原文。"
-                  }
-                  value={script}
-                  onChange={(e) => setScript(e.target.value)}
-                  maxLength={30000}
-                  required
-                  minLength={10}
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  disabled={project?.status === "running"}
                 />
-                <div className="script-footer">
-                  <span>支持 TXT / Markdown / Word</span>
-                  <span>{script.length.toLocaleString()} / 30,000 字符</span>
-                </div>
-              </section>
-              <aside className="brief-pane">
-                <div className="pane-heading">
-                  <h2>拍摄设定</h2>
-                  <span className="optional">可选</span>
-                </div>
-                <label>
-                  画幅
-                  <div className="aspect-options">
-                    {["9:16", "16:9", "1:1"].map((x) => (
-                      <button
-                        type="button"
-                        key={x}
-                        className={cn(aspect === x && "selected")}
-                        onClick={() => setAspect(x)}
-                      >
-                        <span style={{ aspectRatio: x.replace(":", "/") }} />
-                        {x}
-                      </button>
-                    ))}
-                  </div>
-                </label>
-                <label>
-                  画风与整体风格
-                  <textarea
-                    value={style}
-                    onChange={(e) => setStyle(e.target.value)}
-                    rows={3}
-                    maxLength={1000}
-                  />
-                </label>
-                <div className="auto-timing">
-                  <span>时长 · 自动估算</span>
-                  <p>根据对白语速、动作与表演停顿逐镜判断，再汇总整段时长。</p>
-                </div>
-                <div className="brief-note">
-                  <Eye size={16} />
-                  <p>
-                    保留原对白和剧情。
-                    <br />
-                    生成后，每一镜都可以修改、审核。
-                  </p>
-                </div>
-              </aside>
-              <div className="composer-bottom">
-                <span>
-                  <span className="tiny-square" /> Higgsfield Skills · 导演 /
-                  表演 / 摄影 / 风格 / 声音
-                </span>
-                <button
-                  className="primary"
-                  disabled={busy || script.trim().length < 10}
-                >
-                  {busy ? (
-                    <LoaderCircle size={17} className="spin" />
-                  ) : (
-                    <Sparkles size={17} />
-                  )}
-                  生成分镜
-                  <ArrowRight size={17} />
-                </button>
-              </div>
-            </form>
-            <div className="example-line">
-              <div>
-                <span className="sample-label">先看成品</span>
-                <strong>一场深夜的办公室对话，如何拆成四个镜头？</strong>
-                <p>查看表格、逐镜修改与完整提示词。此为预先编写的示例。</p>
-              </div>
-              <button className="secondary" onClick={example} disabled={busy}>
-                打开示例 <ArrowUpRight size={16} />
-              </button>
+              </label>
             </div>
-            <div className="output-preview">
-              <div>
-                <span>01</span>
-                <h3>看清每一镜</h3>
-                <p>画面、表演与摄影，共同服务这场戏。</p>
-              </div>
-              <div>
-                <span>02</span>
-                <h3>始终对照原文</h3>
-                <p>对白有出处，切镜有理由，时长有依据。</p>
-              </div>
-              <div>
-                <span>03</span>
-                <h3>审核后交给制作</h3>
-                <p>复制提示词，或导出完整分镜表。</p>
-              </div>
-            </div>
+          </details>
+          <div className="generate-area">
+            <button
+              className="primary"
+              disabled={
+                busy ||
+                script.trim().length < 10 ||
+                project?.status === "running"
+              }
+            >
+              {busy || project?.status === "running" ? (
+                <LoaderCircle size={17} className="spin" />
+              ) : (
+                <Sparkles size={17} />
+              )}{" "}
+              {project?.status === "running" ? "正在生成…" : "生成分镜"}
+              <ArrowRight size={16} />
+            </button>
+            <p>自动拆镜、估算秒数，保留原对白。</p>
           </div>
-        ) : (
-          <div className="project-view">
-            <div className="project-heading">
-              <div>
-                <div className="eyebrow">
-                  STORYBOARD /{" "}
-                  {project.isExample
-                    ? "示例 · 非实时模型生成"
-                    : providers[project.provider?.name] || "导演分镜"}
-                </div>
-                <h1>{project.title}</h1>
-                <div className="project-sub">
-                  <span>{project.aspect}</span>
-                  <span>{project.style}</span>
-                </div>
-              </div>
-              <div className="export-buttons">
-                <a
-                  className="secondary"
-                  href={`/api/projects/${project.id}/export?format=csv`}
-                >
-                  <Download size={15} /> 导出表格
-                </a>
-                <a
-                  className="icon-button bordered"
-                  aria-label="导出完整 JSON"
-                  title="导出完整 JSON"
-                  href={`/api/projects/${project.id}/export?format=json`}
-                >
-                  <BookOpen size={17} />
-                </a>
-              </div>
-            </div>
-            <div className="stats">
-              <div>
-                <Film size={18} />
-                <strong>{project.shots.length}</strong>
-                <span>个镜头</span>
-              </div>
-              <div>
-                <Clock3 size={18} />
-                <strong>{duration(project.totalSeconds)}</strong>
-                <span>预计成片</span>
-              </div>
-              <div>
-                <CheckCheck size={18} />
-                <strong>
-                  {project.shots.filter((s) => s.status === "approved").length}{" "}
-                  / {project.shots.length}
-                </strong>
-                <span>审核通过</span>
-              </div>
-              <div className="estimate-note">
-                时长为创作估算，需以配音与表演校准
-              </div>
-            </div>
-            {project.status === "running" && (
-              <div className="progress-card">
-                <LoaderCircle className="spin" size={22} />
-                <div>
-                  <strong>{project.progress}</strong>
-                  <p>你可以离开页面，任务会在本地服务运行期间继续。</p>
-                </div>
-                <button
-                  className="secondary"
-                  onClick={() =>
-                    act(() => post(`/projects/${project.id}/cancel`))
-                  }
-                >
-                  <Square size={13} />
-                  取消
-                </button>
-                <div className="progress-track">
-                  <span />
-                </div>
+        </form>
+        <section className="output-window" aria-label="分镜结果">
+          <div className="window-heading">
+            <h2>
+              <span>02</span>分镜表
+            </h2>
+            <span className="output-hint">逐镜修改 · 审核 · 导出</span>
+          </div>
+          {project &&
+            (script !== project.script ||
+              style !== project.style ||
+              aspect !== project.aspect) && (
+              <div className="draft-notice">
+                左侧剧本或选项已修改。点击生成会新建一份分镜，当前结果保留在历史中。
               </div>
             )}
-            {["failed", "cancelled", "interrupted"].includes(
-              project.status,
-            ) && (
-              <div className="task-error">
-                <AlertCircle />
-                <div>
-                  <strong>{projectStatus[project.status]}</strong>
-                  <p>{project.error}</p>
-                  <small>已完成场次会保留，继续时使用当前后台模型。</small>
-                </div>
+          {!project ? (
+            <div className="output-empty">
+              <div className="empty-columns">
+                <span>镜号 / 秒数</span>
+                <span>画面与表演</span>
+                <span>摄影与声音</span>
+              </div>
+              <div className="empty-message">
+                <Clapperboard size={32} />
+                <h2>分镜表会出现在这里</h2>
+                <p>粘贴剧本，点一次生成。</p>
                 <button
-                  className="secondary"
+                  type="button"
+                  className="text-button"
+                  onClick={example}
                   disabled={busy}
-                  onClick={() =>
-                    act(async () => {
-                      setProject(await post(`/projects/${project.id}/resume`));
-                      await load();
-                    })
-                  }
                 >
-                  <RotateCcw size={15} />
-                  继续生成
+                  查看预写示例 <ArrowUpRight size={14} />
                 </button>
               </div>
-            )}
-            {project.outline && (
-              <details className="global-notes">
-                <summary>
-                  <Clapperboard size={17} /> 全片导演设定{" "}
-                  <span>
-                    {project.outline.scenes.length} 场 ·{" "}
-                    {project.outline.characters.length} 位角色
-                  </span>
-                  <ChevronDown size={15} />
-                </summary>
+            </div>
+          ) : (
+            <div className="project-view">
+              <div className="project-heading">
                 <div>
-                  <p>
-                    <b>影像基准</b>
-                    {project.outline.look}
-                  </p>
-                  <p>
-                    <b>角色</b>
-                    {project.outline.characters.join("；")}
-                  </p>
-                  {project.outline.assumptions.length > 0 && (
-                    <p>
-                      <b>待确认的创作建议</b>
-                      {project.outline.assumptions.join("；")}
-                    </p>
-                  )}
-                  {project.outline.scenes.map((s, i) => (
-                    <p key={i}>
-                      <b>
-                        第 {i + 1} 场 · {s.name}
-                      </b>
-                      {s.geography}
-                    </p>
-                  ))}
+                  <div className="eyebrow">
+                    STORYBOARD /{" "}
+                    {project.isExample
+                      ? "示例 · 非实时模型生成"
+                      : providers[project.provider?.name] || "导演分镜"}
+                  </div>
+                  <h3>{project.title}</h3>
+                  <div className="project-sub">
+                    <span>{project.aspect}</span>
+                    <span>{project.style}</span>
+                  </div>
                 </div>
-              </details>
-            )}
-            {(project.issues.length > 0 || project.auditStale) && (
-              <details className="review-notes">
-                <summary>
-                  <AlertCircle size={16} />
-                  {project.auditStale
-                    ? project.isExample
-                      ? "示例已修改，请复查相邻镜头的衔接"
-                      : "分镜已修改，整场模型审阅已失效；请重新核对衔接"
-                    : `${project.issues.length} 项需要你留意`}
-                  <ChevronDown size={15} />
-                </summary>
-                <ul>
-                  {project.issues.map((x, i) => (
-                    <li
-                      key={i}
-                      className={x.severity === "error" ? "issue-error" : ""}
-                    >
-                      <b>
-                        {x.shotId || "整场"} · {x.category}
-                      </b>
-                      <span>{x.message}</span>
-                      {x.suggestion && <small>{x.suggestion}</small>}
-                    </li>
-                  ))}
-                </ul>
-                {project.auditStale && !project.isExample && (
+                <div className="export-buttons">
+                  <a
+                    className="secondary"
+                    href={`/api/projects/${project.id}/export?format=csv`}
+                  >
+                    <Download size={15} /> 导出表格
+                  </a>
+                  <a
+                    className="icon-button bordered"
+                    aria-label="导出完整 JSON"
+                    title="导出完整 JSON"
+                    href={`/api/projects/${project.id}/export?format=json`}
+                  >
+                    <BookOpen size={17} />
+                  </a>
+                </div>
+              </div>
+              <div className="stats">
+                <div>
+                  <Film size={18} />
+                  <strong>{project.shots.length}</strong>
+                  <span>个镜头</span>
+                </div>
+                <div>
+                  <Clock3 size={18} />
+                  <strong>{duration(project.totalSeconds)}</strong>
+                  <span>预计成片</span>
+                </div>
+                <div>
+                  <CheckCheck size={18} />
+                  <strong>
+                    {
+                      project.shots.filter((s) => s.status === "approved")
+                        .length
+                    }{" "}
+                    / {project.shots.length}
+                  </strong>
+                  <span>审核通过</span>
+                </div>
+                <div className="estimate-note">
+                  时长为创作估算，需以配音与表演校准
+                </div>
+              </div>
+              {project.status === "running" && (
+                <div className="progress-card">
+                  <LoaderCircle className="spin" size={22} />
+                  <div>
+                    <strong>{project.progress}</strong>
+                    <p>你可以离开页面，任务会在本地服务运行期间继续。</p>
+                  </div>
                   <button
                     className="secondary"
-                    disabled={busy || project.status === "running"}
+                    onClick={() =>
+                      act(() => post(`/projects/${project.id}/cancel`))
+                    }
+                  >
+                    <Square size={13} />
+                    取消
+                  </button>
+                  <div className="progress-track">
+                    <span />
+                  </div>
+                </div>
+              )}
+              {["failed", "cancelled", "interrupted"].includes(
+                project.status,
+              ) && (
+                <div className="task-error">
+                  <AlertCircle />
+                  <div>
+                    <strong>{projectStatus[project.status]}</strong>
+                    <p>{project.error}</p>
+                    <small>已完成场次会保留，继续时使用当前后台模型。</small>
+                  </div>
+                  <button
+                    className="secondary"
+                    disabled={busy}
                     onClick={() =>
                       act(async () => {
                         setProject(
-                          await post(`/projects/${project.id}/review`),
+                          await post(`/projects/${project.id}/resume`),
                         );
                         await load();
                       })
                     }
                   >
-                    重新审阅整场
+                    <RotateCcw size={15} />
+                    继续生成
                   </button>
-                )}
-              </details>
-            )}
-            <div className="table-toolbar">
-              <div className="tabs">
-                {[
-                  ["all", "全部镜头"],
-                  ["draft", "待审核"],
-                  ["approved", "已通过"],
-                  ["changes", "待修改"],
-                ].map(([v, l]) => (
-                  <button
-                    className={filter === v ? "active" : ""}
-                    key={v}
-                    onClick={() => setFilter(v)}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-              <select
-                aria-label="筛选场次"
-                value={sceneFilter}
-                onChange={(e) => setSceneFilter(e.target.value)}
-              >
-                <option value="all">全部场次</option>
-                {project.outline?.scenes.map((s, i) => (
-                  <option value={i} key={i}>
-                    第 {i + 1} 场 · {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th className="sticky-col">镜号 / 秒数</th>
-                    <th>对应剧本</th>
-                    <th>画面与表演</th>
-                    <th>摄影与运镜</th>
-                    <th>美术与光线</th>
-                    <th>对白与声音</th>
-                    <th>提示词 / 审核</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => (
-                    <tr key={s.id}>
-                      <td className="sticky-col">
-                        <button
-                          className="shot-id"
-                          onClick={() => setSelected(s)}
-                        >
-                          {s.id}
-                          <ArrowUpRight size={13} />
-                        </button>
-                        <strong className="shot-seconds">
-                          {s.timing.seconds}
-                          <small> 秒</small>
-                        </strong>
-                        <small className="muted">
-                          约 {s.timing.min}–{s.timing.max} 秒
-                        </small>
-                        <span className={cn("status-pill", s.status)}>
-                          {statusNames[s.status]}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="source-excerpt">
-                          {s.source.map((l) => (
-                            <p key={l.id}>
-                              <span>L{l.id}</span>
-                              {l.text}
-                            </p>
-                          ))}
-                        </div>
-                        <p className="cell-reason">{s.purpose}</p>
-                      </td>
-                      <td>
-                        <p className="cell-main">{s.description}</p>
-                        <div className="cell-label">表演</div>
-                        <p>{s.performance}</p>
-                      </td>
-                      <td>
-                        <span className="framing-tag">{s.framing}</span>
-                        <p>{s.camera}</p>
-                        <div className="cell-label">正反打 / 轴线</div>
-                        <p>{s.coverage}</p>
-                      </td>
-                      <td>
-                        <p>{s.lighting}</p>
-                        <div className="cell-label">画风与美术</div>
-                        <p>
-                          {s.style} · {s.artDirection}
-                        </p>
-                      </td>
-                      <td>
-                        <p className="dialogue">
-                          {s.dialogue.map((d, i) => (
-                            <React.Fragment key={i}>
-                              {d.speaker}：“{d.text}”<br />
-                            </React.Fragment>
-                          ))}
-                          {!s.dialogue.length && (
-                            <span className="muted">无对白</span>
-                          )}
-                        </p>
-                        <div className="cell-label">声音</div>
-                        <p>
-                          {s.ambience}
-                          <br />
-                          {s.sfx}
-                        </p>
-                        <small className="muted">{s.music}</small>
-                      </td>
-                      <td>
-                        <button
-                          className="secondary compact"
-                          onClick={() => copy(s.prompt)}
-                        >
-                          <Copy size={14} />
-                          复制提示词
-                        </button>
-                        <button
-                          className="text-button edit-button"
-                          disabled={project.status === "running"}
-                          onClick={() => setSelected(s)}
-                        >
-                          展开 / 修改
-                          <ChevronRight size={14} />
-                        </button>
-                        <button
-                          className={cn(
-                            "approve-button",
-                            s.status === "approved" && "approved",
-                          )}
-                          disabled={busy || project.status === "running"}
-                          onClick={() => approve(s)}
-                        >
-                          <Check size={14} />
-                          {s.status === "approved" ? "已通过" : "通过此镜"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!filtered.length && (
-                <div className="empty-table">
-                  <Clapperboard size={26} />
-                  <p>
-                    {project.status === "running"
-                      ? "镜头正在准备中，完成后会出现在这里。"
-                      : "当前筛选下没有镜头。"}
-                  </p>
                 </div>
               )}
+              {project.outline && (
+                <details className="global-notes">
+                  <summary>
+                    <Clapperboard size={17} /> 全片导演设定{" "}
+                    <span>
+                      {project.outline.scenes.length} 场 ·{" "}
+                      {project.outline.characters.length} 位角色
+                    </span>
+                    <ChevronDown size={15} />
+                  </summary>
+                  <div>
+                    <p>
+                      <b>影像基准</b>
+                      {project.outline.look}
+                    </p>
+                    <p>
+                      <b>角色</b>
+                      {project.outline.characters.join("；")}
+                    </p>
+                    {project.outline.assumptions.length > 0 && (
+                      <p>
+                        <b>待确认的创作建议</b>
+                        {project.outline.assumptions.join("；")}
+                      </p>
+                    )}
+                    {project.outline.scenes.map((s, i) => (
+                      <p key={i}>
+                        <b>
+                          第 {i + 1} 场 · {s.name}
+                        </b>
+                        {s.geography}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              )}
+              {(project.issues.length > 0 || project.auditStale) && (
+                <details className="review-notes">
+                  <summary>
+                    <AlertCircle size={16} />
+                    {project.auditStale
+                      ? project.isExample
+                        ? "示例已修改，请复查相邻镜头的衔接"
+                        : "分镜已修改，整场模型审阅已失效；请重新核对衔接"
+                      : `${project.issues.length} 项需要你留意`}
+                    <ChevronDown size={15} />
+                  </summary>
+                  <ul>
+                    {project.issues.map((x, i) => (
+                      <li
+                        key={i}
+                        className={x.severity === "error" ? "issue-error" : ""}
+                      >
+                        <b>
+                          {x.shotId || "整场"} · {x.category}
+                        </b>
+                        <span>{x.message}</span>
+                        {x.suggestion && <small>{x.suggestion}</small>}
+                      </li>
+                    ))}
+                  </ul>
+                  {project.auditStale && !project.isExample && (
+                    <button
+                      className="secondary"
+                      disabled={busy || project.status === "running"}
+                      onClick={() =>
+                        act(async () => {
+                          setProject(
+                            await post(`/projects/${project.id}/review`),
+                          );
+                          await load();
+                        })
+                      }
+                    >
+                      重新审阅整场
+                    </button>
+                  )}
+                </details>
+              )}
+              <div className="table-toolbar">
+                <div className="tabs">
+                  {[
+                    ["all", "全部镜头"],
+                    ["draft", "待审核"],
+                    ["approved", "已通过"],
+                    ["changes", "待修改"],
+                  ].map(([v, l]) => (
+                    <button
+                      className={filter === v ? "active" : ""}
+                      key={v}
+                      onClick={() => setFilter(v)}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  aria-label="筛选场次"
+                  value={sceneFilter}
+                  onChange={(e) => setSceneFilter(e.target.value)}
+                >
+                  <option value="all">全部场次</option>
+                  {project.outline?.scenes.map((s, i) => (
+                    <option value={i} key={i}>
+                      第 {i + 1} 场 · {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="sticky-col">镜号 / 秒数</th>
+                      <th>对应剧本</th>
+                      <th>画面与表演</th>
+                      <th>摄影与运镜</th>
+                      <th>美术与光线</th>
+                      <th>对白与声音</th>
+                      <th>提示词 / 审核</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => (
+                      <tr key={s.id}>
+                        <td className="sticky-col">
+                          <button
+                            className="shot-id"
+                            onClick={() => setSelected(s)}
+                          >
+                            {s.id}
+                            <ArrowUpRight size={13} />
+                          </button>
+                          <strong className="shot-seconds">
+                            {s.timing.seconds}
+                            <small> 秒</small>
+                          </strong>
+                          <small className="muted">
+                            约 {s.timing.min}–{s.timing.max} 秒
+                          </small>
+                          <span className={cn("status-pill", s.status)}>
+                            {statusNames[s.status]}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="source-excerpt">
+                            {s.source.map((l) => (
+                              <p key={l.id}>
+                                <span>L{l.id}</span>
+                                {l.text}
+                              </p>
+                            ))}
+                          </div>
+                          <p className="cell-reason">{s.purpose}</p>
+                        </td>
+                        <td>
+                          <p className="cell-main">{s.description}</p>
+                          <div className="cell-label">表演</div>
+                          <p>{s.performance}</p>
+                        </td>
+                        <td>
+                          <span className="framing-tag">{s.framing}</span>
+                          <p>{s.camera}</p>
+                          <div className="cell-label">正反打 / 轴线</div>
+                          <p>{s.coverage}</p>
+                        </td>
+                        <td>
+                          <p>{s.lighting}</p>
+                          <div className="cell-label">画风与美术</div>
+                          <p>
+                            {s.style} · {s.artDirection}
+                          </p>
+                        </td>
+                        <td>
+                          <p className="dialogue">
+                            {s.dialogue.map((d, i) => (
+                              <React.Fragment key={i}>
+                                {d.speaker}：“{d.text}”<br />
+                              </React.Fragment>
+                            ))}
+                            {!s.dialogue.length && (
+                              <span className="muted">无对白</span>
+                            )}
+                          </p>
+                          <div className="cell-label">声音</div>
+                          <p>
+                            {s.ambience}
+                            <br />
+                            {s.sfx}
+                          </p>
+                          <small className="muted">{s.music}</small>
+                        </td>
+                        <td>
+                          <button
+                            className="secondary compact"
+                            onClick={() => copy(s.prompt)}
+                          >
+                            <Copy size={14} />
+                            复制提示词
+                          </button>
+                          <button
+                            className="text-button edit-button"
+                            disabled={project.status === "running"}
+                            onClick={() => setSelected(s)}
+                          >
+                            展开 / 修改
+                            <ChevronRight size={14} />
+                          </button>
+                          <button
+                            className={cn(
+                              "approve-button",
+                              s.status === "approved" && "approved",
+                            )}
+                            disabled={busy || project.status === "running"}
+                            onClick={() => approve(s)}
+                          >
+                            <Check size={14} />
+                            {s.status === "approved" ? "已通过" : "通过此镜"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!filtered.length && (
+                  <div className="empty-table">
+                    <Clapperboard size={26} />
+                    <p>
+                      {project.status === "running"
+                        ? "镜头正在准备中，完成后会出现在这里。"
+                        : "当前筛选下没有镜头。"}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="table-foot">
+                <span>点击镜号，查看估时依据与完整提示词。</span>
+                <span>
+                  {project.isExample ? "预先编写的演示内容" : "已保存到服务端"}{" "}
+                  ·{" "}
+                  {new Date(project.updatedAt).toLocaleTimeString("zh-CN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
             </div>
-            <div className="table-foot">
-              <span>点击镜号，查看估时依据与完整提示词。</span>
-              <span>
-                {project.isExample ? "预先编写的演示内容" : "已保存到服务端"} ·{" "}
-                {new Date(project.updatedAt).toLocaleTimeString("zh-CN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          </div>
-        )}
+          )}
+        </section>
       </main>
       {toast && (
         <div className="toast" role="status">
           <Check size={16} />
           {toast}
         </div>
+      )}
+      {showHistory && (
+        <Modal onClose={() => setShowHistory(false)}>
+          <div className="modal-header">
+            <h2>历史分镜</h2>
+            <button
+              className="icon-button"
+              aria-label="关闭历史分镜"
+              onClick={() => setShowHistory(false)}
+            >
+              <X />
+            </button>
+          </div>
+          <div className="history-list">
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                className="project-link"
+                onClick={() => open(p.id)}
+              >
+                <FileText size={17} />
+                <span>
+                  <strong>{p.title}</strong>
+                  <small>
+                    {p.isExample ? "预写示例" : projectStatus[p.status]} ·{" "}
+                    {p.shots} 镜
+                  </small>
+                </span>
+                <ArrowRight size={15} />
+              </button>
+            ))}
+            {!projects.length && (
+              <p className="muted">生成后的分镜会自动保存在这里。</p>
+            )}
+          </div>
+        </Modal>
       )}
       {showSettings && settings && (
         <Settings

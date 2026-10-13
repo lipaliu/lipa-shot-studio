@@ -19,6 +19,10 @@ npm start
 
 ## 使用
 
+主界面只有两个窗口：左侧剧本输入，右侧分镜表；手机上改为上下排列。默认粘贴后直接生成，画幅/画风/名称收在「更多选项」，模型和历史分镜在顶部。生成过程中输入和输出同屏，点击镜号修改。修改输入后再次生成会新建项目，旧结果保留在历史中。
+
+打开网站地址，不要双击 index.html；这是需要后台的 Web 应用。
+
 1. 粘贴剧本，或导入 TXT、Markdown、DOCX（最多 5 MB / 30,000 字符）。
 2. 可选画幅和画风，点击生成。后台依次理解场景 → 拆镜/表演/摄影 → 美术/光线/声音 → 复核。
 3. 每镜包含原文出处、画面、表演、景别、运镜、轴线/正反打、画风、美术、光线、对白/音效/环境/配乐、秒数和完整提示词。
@@ -30,7 +34,7 @@ npm start
 
 主创作规则来自 OSideMedia 的 Higgsfield 社区 Skills：shotlist-director、acting、camera、style、audio。原文快照位于 [vendor/higgsfield](vendor/higgsfield)，许可为 MIT。实际选段、版本和 SHA-256 记录在 manifest，后台直接读取选段传给模型。不是只写一个“你是导演”的提示词，也不是 Higgsfield 官方接口。
 
-[规则来源与适配说明](docs/SKILL-SOURCES.md) · [程序员交接](docs/HANDOFF.md) · [验收记录](docs/TESTING.md)
+[规则来源与适配说明](docs/SKILL-SOURCES.md) · [发给程序员的交接摘要](docs/PROGRAMMER-BRIEF.md) · [技术交接](docs/HANDOFF.md) · [验收记录](docs/TESTING.md)
 
 ## 交付状态
 

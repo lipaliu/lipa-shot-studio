@@ -1,5 +1,7 @@
 # 程序员交接 · 2026-10-14
 
+产品最新约定：主界面为「左侧剧本、右侧表格」两个窗口。常规操作只有粘贴 → 生成 → 审核/导出。更多选项默认折叠，不增加目标时长输入。简明交接见 [PROGRAMMER-BRIEF.md](PROGRAMMER-BRIEF.md)。
+
 ## 明天优先做
 
 1. 克隆私有仓库，Node 24，npm ci / npm run build / npm start。
