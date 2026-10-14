@@ -40,7 +40,7 @@ npm start
 
 - 本地前后端、示例逐镜流程、模拟模型多阶段流程已验证。
 - **按项目所有者要求，本次不配置真实 API Key；GPT / 豆包实际出片单的质量、延时和费用待程序员实测。**
-- 本次只交付本地运行与私有 GitHub 源码，不包含公网部署。
+- 本次只交付本地运行与公开 GitHub 源码，不包含公网部署。
 
 ## 开发
 
@@ -54,4 +54,4 @@ npm start
 
 目录：src 为界面；server 为 API / 数据 / 模型工作流；prompts 为网页适配合同；vendor 为 Higgsfield 原文；examples 为手写示例；tests 为离线测试。
 
-代码为私人项目，未授予项目整体开源许可。Higgsfield 规则原文保留其 MIT 许可，见 licenses/HIGGSFIELD-MIT.txt。
+仓库公开可读，未授予项目整体开源许可。Higgsfield 规则原文保留其 MIT 许可，见 licenses/HIGGSFIELD-MIT.txt。

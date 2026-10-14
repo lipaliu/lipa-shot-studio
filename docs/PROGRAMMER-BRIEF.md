@@ -1,6 +1,6 @@
 # 发给程序员 · Lipa 分镜工作台
 
-源码：https://github.com/lipaliu/lipa-shot-studio （私有仓库，默认分支 codex/initial-delivery）
+源码：https://github.com/lipaliu/lipa-shot-studio （公开仓库，默认分支 codex/initial-delivery）
 
 ## 产品要求已定
 
