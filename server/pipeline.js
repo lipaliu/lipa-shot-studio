@@ -64,6 +64,15 @@ const draftFormat = {
       pauseSeconds: 1,
       overlap: true,
       timingReason: "对白/动作/反应的秒数依据与不确定性",
+      blocking: {
+        actors: [{ name: "本场人物名", x: 30, y: 45 }],
+        camera: { x: 50, y: 85, targetX: 50, targetY: 45 },
+        light: { x: 80, y: 20 },
+        props: [
+          { name: "剧本已有的桌子", x: 50, y: 45, width: 25, height: 15 },
+        ],
+        note: "建议机位的依据，未知空间需注明是假设",
+      },
     },
   ],
 };
@@ -189,7 +198,10 @@ export async function runPipeline(
     {
       script: lines,
       global: project.outline,
-      shots: project.shots.map((s) => ({ ...s, timing: timing(s) })),
+      shots: project.shots.map(({ storyboardImage, ...s }) => ({
+        ...s,
+        timing: timing(s),
+      })),
       format: {
         issues: [
           {

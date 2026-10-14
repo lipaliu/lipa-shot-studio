@@ -127,6 +127,35 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
   assert.match(r.shots[0].prompt, /桌灯关闭/);
   const refreshed = await (await call("/api/projects/" + p.id)).json();
   assert.equal(refreshed.shots[0].lighting, "保留冷窗光，桌灯关闭");
+  const image =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jhJ8AAAAASUVORK5CYII=";
+  const changed = {
+    ...refreshed.shots[0],
+    storyboardImage: image,
+    blocking: {
+      ...refreshed.shots[0].blocking,
+      camera: { ...refreshed.shots[0].blocking.camera, x: 62 },
+    },
+  };
+  assert.equal(
+    (await call(`/api/projects/${p.id}/shots/${shot.id}`, changed, "PATCH"))
+      .status,
+    200,
+  );
+  const reopened = await (await call("/api/projects/" + p.id)).json();
+  assert.equal(reopened.shots[0].storyboardImage, image);
+  assert.equal(reopened.shots[0].blocking.camera.x, 62);
+  assert.match(reopened.shots[0].prompt, /"x":62/);
+  assert.equal(
+    (
+      await call(
+        `/api/projects/${p.id}/shots/${shot.id}`,
+        { ...changed, storyboardImage: "data:image/svg+xml;base64,PHN2Zz4=" },
+        "PATCH",
+      )
+    ).status,
+    400,
+  );
   const csv = await (
     await call(`/api/projects/${p.id}/export?format=csv`)
   ).text();

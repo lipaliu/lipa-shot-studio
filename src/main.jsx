@@ -24,7 +24,8 @@ import {
   Square,
   Sparkles,
 } from "lucide-react";
-import "./style.css";
+import "./cinema.css";
+import { Storyboard } from "./storyboard.jsx";
 async function api(url, options = {}) {
   const r = await fetch("/api" + url, {
     ...options,
@@ -64,7 +65,13 @@ function App() {
     [showHistory, setShowHistory] = useState(false),
     [selected, setSelected] = useState(null),
     [filter, setFilter] = useState("all"),
-    [sceneFilter, setSceneFilter] = useState("all");
+    [sceneFilter, setSceneFilter] = useState("all"),
+    [view, setView] = useState("board"),
+    [boardDirty, setBoardDirty] = useState(false);
+  const leaveBoard = () => {
+    if (boardDirty) notify("请先保存镜头，或在故事板中撤销修改。");
+    return !boardDirty;
+  };
   const [title, setTitle] = useState(""),
     [script, setScript] = useState(""),
     [style, setStyle] = useState("写实影像，具体光色和氛围依剧本判断"),
@@ -112,6 +119,7 @@ function App() {
     }
   }
   async function open(id) {
+    if (!leaveBoard()) return;
     await act(async () => {
       const p = await api("/projects/" + id);
       setProject(p);
@@ -127,6 +135,7 @@ function App() {
   }
   async function generate(e) {
     e.preventDefault();
+    if (!leaveBoard()) return;
     if (!settings?.[settings.provider]?.configured) {
       setShowSettings(true);
       return;
@@ -159,6 +168,7 @@ function App() {
     });
   }
   async function example() {
+    if (!leaveBoard()) return;
     await act(async () => {
       const p = await post("/example");
       setProject(p);
@@ -376,7 +386,7 @@ function App() {
         <section className="output-window" aria-label="分镜结果">
           <div className="window-heading">
             <h2>
-              <span>02</span>分镜表
+              <span>02</span>分镜工作区
             </h2>
             <span className="output-hint">逐镜修改 · 审核 · 导出</span>
           </div>
@@ -397,8 +407,8 @@ function App() {
               </div>
               <div className="empty-message">
                 <Clapperboard size={32} />
-                <h2>分镜表会出现在这里</h2>
-                <p>粘贴剧本，点一次生成。</p>
+                <h2>把文字，变成一个个镜头。</h2>
+                <p>故事板、机位图与分镜表，生成后在这里逐镜展开。</p>
                 <button
                   type="button"
                   className="text-button"
@@ -596,6 +606,26 @@ function App() {
                 </details>
               )}
               <div className="table-toolbar">
+                <div className="view-switch" aria-label="分镜视图">
+                  <button
+                    aria-pressed={view === "board"}
+                    onClick={() => {
+                      if (leaveBoard()) setView("board");
+                    }}
+                  >
+                    <Film size={15} />
+                    故事板
+                  </button>
+                  <button
+                    aria-pressed={view === "table"}
+                    onClick={() => {
+                      if (leaveBoard()) setView("table");
+                    }}
+                  >
+                    <FileText size={15} />
+                    分镜表
+                  </button>
+                </div>
                 <div className="tabs">
                   {[
                     ["all", "全部镜头"],
@@ -606,7 +636,9 @@ function App() {
                     <button
                       className={filter === v ? "active" : ""}
                       key={v}
-                      onClick={() => setFilter(v)}
+                      onClick={() => {
+                        if (leaveBoard()) setFilter(v);
+                      }}
                     >
                       {l}
                     </button>
@@ -615,7 +647,9 @@ function App() {
                 <select
                   aria-label="筛选场次"
                   value={sceneFilter}
-                  onChange={(e) => setSceneFilter(e.target.value)}
+                  onChange={(e) => {
+                    if (leaveBoard()) setSceneFilter(e.target.value);
+                  }}
                 >
                   <option value="all">全部场次</option>
                   {project.outline?.scenes.map((s, i) => (
@@ -625,134 +659,152 @@ function App() {
                   ))}
                 </select>
               </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th className="sticky-col">镜号 / 秒数</th>
-                      <th>对应剧本</th>
-                      <th>画面与表演</th>
-                      <th>摄影与运镜</th>
-                      <th>美术与光线</th>
-                      <th>对白与声音</th>
-                      <th>提示词 / 审核</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((s) => (
-                      <tr key={s.id}>
-                        <td className="sticky-col">
-                          <button
-                            className="shot-id"
-                            onClick={() => setSelected(s)}
-                          >
-                            {s.id}
-                            <ArrowUpRight size={13} />
-                          </button>
-                          <strong className="shot-seconds">
-                            {s.timing.seconds}
-                            <small> 秒</small>
-                          </strong>
-                          <small className="muted">
-                            约 {s.timing.min}–{s.timing.max} 秒
-                          </small>
-                          <span className={cn("status-pill", s.status)}>
-                            {statusNames[s.status]}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="source-excerpt">
-                            {s.source.map((l) => (
-                              <p key={l.id}>
-                                <span>L{l.id}</span>
-                                {l.text}
-                              </p>
-                            ))}
-                          </div>
-                          <p className="cell-reason">{s.purpose}</p>
-                        </td>
-                        <td>
-                          <p className="cell-main">{s.description}</p>
-                          <div className="cell-label">表演</div>
-                          <p>{s.performance}</p>
-                        </td>
-                        <td>
-                          <span className="framing-tag">{s.framing}</span>
-                          <p>{s.camera}</p>
-                          <div className="cell-label">正反打 / 轴线</div>
-                          <p>{s.coverage}</p>
-                        </td>
-                        <td>
-                          <p>{s.lighting}</p>
-                          <div className="cell-label">画风与美术</div>
-                          <p>
-                            {s.style} · {s.artDirection}
-                          </p>
-                        </td>
-                        <td>
-                          <p className="dialogue">
-                            {s.dialogue.map((d, i) => (
-                              <React.Fragment key={i}>
-                                {d.speaker}：“{d.text}”<br />
-                              </React.Fragment>
-                            ))}
-                            {!s.dialogue.length && (
-                              <span className="muted">无对白</span>
-                            )}
-                          </p>
-                          <div className="cell-label">声音</div>
-                          <p>
-                            {s.ambience}
-                            <br />
-                            {s.sfx}
-                          </p>
-                          <small className="muted">{s.music}</small>
-                        </td>
-                        <td>
-                          <button
-                            className="secondary compact"
-                            onClick={() => copy(s.prompt)}
-                          >
-                            <Copy size={14} />
-                            复制提示词
-                          </button>
-                          <button
-                            className="text-button edit-button"
-                            disabled={project.status === "running"}
-                            onClick={() => setSelected(s)}
-                          >
-                            展开 / 修改
-                            <ChevronRight size={14} />
-                          </button>
-                          <button
-                            className={cn(
-                              "approve-button",
-                              s.status === "approved" && "approved",
-                            )}
-                            disabled={busy || project.status === "running"}
-                            onClick={() => approve(s)}
-                          >
-                            <Check size={14} />
-                            {s.status === "approved" ? "已通过" : "通过此镜"}
-                          </button>
-                        </td>
+              {view === "board" ? (
+                <Storyboard
+                  key={`${project.id}-${filter}-${sceneFilter}`}
+                  shots={filtered}
+                  project={project}
+                  onSave={updateShot}
+                  onEdit={setSelected}
+                  onCopy={copy}
+                  onApprove={approve}
+                  busy={busy}
+                  onDirtyChange={setBoardDirty}
+                />
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th className="sticky-col">镜号 / 秒数</th>
+                        <th>对应剧本</th>
+                        <th>画面与表演</th>
+                        <th>摄影与运镜</th>
+                        <th>美术与光线</th>
+                        <th>对白与声音</th>
+                        <th>提示词 / 审核</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!filtered.length && (
-                  <div className="empty-table">
-                    <Clapperboard size={26} />
-                    <p>
-                      {project.status === "running"
-                        ? "镜头正在准备中，完成后会出现在这里。"
-                        : "当前筛选下没有镜头。"}
-                    </p>
-                  </div>
-                )}
-              </div>
+                    </thead>
+                    <tbody>
+                      {filtered.map((s) => (
+                        <tr key={s.id}>
+                          <td className="sticky-col">
+                            <button
+                              className="shot-id"
+                              onClick={() => setSelected(s)}
+                            >
+                              {s.id}
+                              <ArrowUpRight size={13} />
+                            </button>
+                            <strong className="shot-seconds">
+                              {s.timing.seconds}
+                              <small> 秒</small>
+                            </strong>
+                            <small className="muted">
+                              约 {s.timing.min}–{s.timing.max} 秒
+                            </small>
+                            <span className={cn("status-pill", s.status)}>
+                              {statusNames[s.status]}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="source-excerpt">
+                              {s.source.map((l) => (
+                                <p key={l.id}>
+                                  <span>L{l.id}</span>
+                                  {l.text}
+                                </p>
+                              ))}
+                            </div>
+                            <p className="cell-reason">{s.purpose}</p>
+                          </td>
+                          <td>
+                            <p className="cell-main">{s.description}</p>
+                            <div className="cell-label">表演</div>
+                            <p>{s.performance}</p>
+                          </td>
+                          <td>
+                            <span className="framing-tag">{s.framing}</span>
+                            <p>{s.camera}</p>
+                            <div className="cell-label">正反打 / 轴线</div>
+                            <p>{s.coverage}</p>
+                          </td>
+                          <td>
+                            <p>{s.lighting}</p>
+                            <div className="cell-label">画风与美术</div>
+                            <p>
+                              {s.style} · {s.artDirection}
+                            </p>
+                          </td>
+                          <td>
+                            <p className="dialogue">
+                              {s.dialogue.map((d, i) => (
+                                <React.Fragment key={i}>
+                                  {d.speaker}：“{d.text}”<br />
+                                </React.Fragment>
+                              ))}
+                              {!s.dialogue.length && (
+                                <span className="muted">无对白</span>
+                              )}
+                            </p>
+                            <div className="cell-label">声音</div>
+                            <p>
+                              {s.ambience}
+                              <br />
+                              {s.sfx}
+                            </p>
+                            <small className="muted">{s.music}</small>
+                          </td>
+                          <td>
+                            <button
+                              className="secondary compact"
+                              onClick={() => copy(s.prompt)}
+                            >
+                              <Copy size={14} />
+                              复制提示词
+                            </button>
+                            <button
+                              className="text-button edit-button"
+                              disabled={project.status === "running"}
+                              onClick={() => setSelected(s)}
+                            >
+                              展开 / 修改
+                              <ChevronRight size={14} />
+                            </button>
+                            <button
+                              className={cn(
+                                "approve-button",
+                                s.status === "approved" && "approved",
+                              )}
+                              disabled={busy || project.status === "running"}
+                              onClick={() => approve(s)}
+                            >
+                              <Check size={14} />
+                              {s.status === "approved" ? "已通过" : "通过此镜"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!filtered.length && (
+                    <div className="empty-table">
+                      <Clapperboard size={26} />
+                      <p>
+                        {project.status === "running"
+                          ? "镜头正在准备中，完成后会出现在这里。"
+                          : "当前筛选下没有镜头。"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="table-foot">
-                <span>点击镜号，查看估时依据与完整提示词。</span>
+                <span>
+                  {view === "board"
+                    ? "按镜头顺序审核；机位、图片可单独保存。"
+                    : "点击镜号，查看估时依据与完整提示词。"}
+                </span>
                 <span>
                   {project.isExample ? "预先编写的演示内容" : "已保存到服务端"}{" "}
                   ·{" "}

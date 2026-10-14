@@ -8,6 +8,8 @@ import {
   validateOutline,
   compilePrompt,
   draftSchema,
+  blockingSchema,
+  storyboardImageSchema,
 } from "../server/schema.js";
 import { runPipeline } from "../server/pipeline.js";
 import { requestJSON, modelJSON } from "../server/provider.js";
@@ -16,6 +18,31 @@ const fixture = JSON.parse(
   fs.readFileSync(new URL("../examples/example.json", import.meta.url)),
 );
 const clone = () => structuredClone(fixture);
+test("blocking coordinates are bounded; legacy shots remain compatible", () => {
+  const p = clone(),
+    s = p.shots[0];
+  assert.equal(blockingSchema.parse(s.blocking).actors[0].name, "林乔");
+  assert.throws(() =>
+    blockingSchema.parse({
+      ...s.blocking,
+      camera: { ...s.blocking.camera, x: 200 },
+    }),
+  );
+  delete s.blocking;
+  assert.equal(draftSchema.parse({ shots: [s] }).shots[0].blocking, undefined);
+  assert.throws(() =>
+    storyboardImageSchema.parse("data:image/svg+xml;base64,PHN2Zz4="),
+  );
+  assert.throws(() =>
+    storyboardImageSchema.parse("https://example.com/image.png"),
+  );
+});
+test("updated floor plan is included in the copied production prompt", () => {
+  const p = clone();
+  p.shots[0].blocking.camera.x = 61;
+  assert.match(compilePrompt(p.shots[0], p), /机位草图/);
+  assert.match(compilePrompt(p.shots[0], p), /"x":61/);
+});
 test("timing counts concurrent action only once and keeps pauses", () => {
   const s = {
     dialogue: [{ text: "一二三四五六七八" }],

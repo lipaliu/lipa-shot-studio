@@ -1,11 +1,34 @@
 import { z } from "zod";
 const text = z.string().max(12000);
+const coordinate = z.number().finite().min(5).max(95);
+const point = z.object({ x: coordinate, y: coordinate });
+export const blockingSchema = z.object({
+  actors: z.array(point.extend({ name: z.string().min(1).max(40) })).max(12),
+  camera: point.extend({ targetX: coordinate, targetY: coordinate }),
+  light: point,
+  props: z
+    .array(
+      point.extend({
+        name: z.string().min(1).max(40),
+        width: z.number().min(5).max(60),
+        height: z.number().min(5).max(60),
+      }),
+    )
+    .max(12),
+  note: z.string().max(1000),
+});
+export const storyboardImageSchema = z
+  .string()
+  .max(2800000)
+  .regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/);
 export const dialogueSchema = z.object({
   sourceLine: z.number().int().positive(),
   speaker: text,
   text: text.min(1),
 });
 export const shotSchema = z.object({
+  blocking: blockingSchema.optional(),
+  storyboardImage: storyboardImageSchema.optional(),
   sourceLines: z.array(z.number().int().positive()).min(1).max(300),
   purpose: text.min(1),
   description: text.min(1),
@@ -123,7 +146,12 @@ export function timing(shot) {
 }
 export function compilePrompt(shot, project) {
   const t = timing(shot);
-  return `【画面规格】${project.aspect}；成片镜头预计 ${t.seconds} 秒（估算，非生成平台时长参数）。\n【主体与动作】${shot.description}\n【人物表演】${shot.performance}\n【摄影】${shot.framing}；${shot.camera}\n【空间与正反打】${shot.coverage}\n【画风与美术】${project.style}；${project.outline?.look || ""}；${shot.style}；${shot.artDirection}\n【光线】${shot.lighting}\n【对白】${shot.dialogue.length ? shot.dialogue.map((d) => `${d.speaker}：“${d.text}”`).join("\n") : "无对白"}\n【声音】环境：${shot.ambience}；音效：${shot.sfx}；配乐：${shot.music}\n【衔接】起始：${shot.continuityIn}；结束：${shot.continuityOut}\n【连续性要求】人物身份、服装、道具归属和光源方向随剧情连续；保持所述视线与动作方向。`;
+  const plan = shot.blocking
+    ? "\n【机位草图】相对平面坐标，非米制尺寸；" +
+      JSON.stringify(shot.blocking) +
+      "；与摄影文字相互核对，如冲突需人工确认。"
+    : "";
+  return `【画面规格】${project.aspect}；成片镜头预计 ${t.seconds} 秒（估算，非生成平台时长参数）。\n【主体与动作】${shot.description}\n【人物表演】${shot.performance}\n【摄影】${shot.framing}；${shot.camera}\n【空间与正反打】${shot.coverage}\n【画风与美术】${project.style}；${project.outline?.look || ""}；${shot.style}；${shot.artDirection}\n【光线】${shot.lighting}\n【对白】${shot.dialogue.length ? shot.dialogue.map((d) => `${d.speaker}：“${d.text}”`).join("\n") : "无对白"}\n【声音】环境：${shot.ambience}；音效：${shot.sfx}；配乐：${shot.music}\n【衔接】起始：${shot.continuityIn}；结束：${shot.continuityOut}\n【连续性要求】人物身份、服装、道具归属和光源方向随剧情连续；保持所述视线与动作方向。${plan}`;
 }
 export function checkShots(shots, lines, scene = null) {
   const issues = [],

@@ -1,6 +1,6 @@
 # 程序员交接 · 2026-10-14
 
-产品最新约定：主界面为「左侧剧本、右侧表格」两个窗口。常规操作只有粘贴 → 生成 → 审核/导出。更多选项默认折叠，不增加目标时长输入。简明交接见 [PROGRAMMER-BRIEF.md](PROGRAMMER-BRIEF.md)。
+产品最新约定：主界面为「左侧剧本、右侧故事板/表格」两个窗口。已按 A 视觉 + B 机位图 + D 故事板实现，见 [UI-STORYBOARD.md](UI-STORYBOARD.md)。常规操作为粘贴 → 生成 → 审核/导出。更多选项默认折叠，不增加目标时长输入。简明交接见 [PROGRAMMER-BRIEF.md](PROGRAMMER-BRIEF.md)。
 
 ## 明天优先做
 
