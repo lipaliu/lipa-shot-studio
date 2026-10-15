@@ -1,0 +1,18 @@
+/* Shot Mate — cobalt studio palette. */
+:root {
+  --brand: #2145ff;
+  --coral: #ff563b;
+  --canvas: #2145ff;
+  --paper: #111b38;
+  --raised: #1e2c4d;
+  --line: #334365;
+  --text: #f7f5ee;
+  --muted: #b5c2dc;
+  --accent: #e6ff42;
+  --accent-hover: #efff83;
+  --accent-pressed: #d6ef30;
+  --success: #a6eac7;
+  --warning: #f4daaa;
+  --danger: #ffbdaf;
+  --radius-control: 8px;
+}

@@ -20,7 +20,7 @@ export const blankBlocking = () => ({
   note: "手动机位草图；相对位置，非实测尺寸。",
 });
 const clamp = (n) => Math.min(95, Math.max(5, Math.round(n)));
-const colors = ["#d5b56f", "#87b5c6", "#c5a5cf", "#a5c693"];
+const colors = ["#e6ff42", "#7fc8ff", "#ff8d86", "#92e6bd"];
 
 // A deliberately schematic composition. Uploaded art always takes precedence.
 export function StoryFrame({ shot, aspect = "16:9", small = false }) {
@@ -65,14 +65,14 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
           height="40"
           patternUnits="userSpaceOnUse"
         >
-          <path d="M40 0H0V40" fill="none" stroke="#34332f" strokeWidth="1" />
+          <path d="M40 0H0V40" fill="none" stroke="#283855" strokeWidth="1" />
         </pattern>
         <clipPath id={`clip-${id}`}>
           <rect width={W} height={H} rx="4" />
         </clipPath>
       </defs>
       <g clipPath={`url(#clip-${id})`}>
-        <rect width={W} height={H} fill="#20211f" />
+        <rect width={W} height={H} fill="#111b38" />
         <rect width={W} height={H} fill={`url(#grid-${id})`} />
         <path
           d={`M0 ${H * 0.68}H${W}M${W / 3} 0V${H}M${(W * 2) / 3} 0V${H}`}
@@ -124,7 +124,7 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
           y={H - 36}
           width={W}
           height="36"
-          fill="#141513"
+          fill="#0c1429"
           opacity=".95"
         />
         <text x="18" y={H - 12} fill="#ddd4c2" fontSize="15">
@@ -256,7 +256,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             height="20"
             patternUnits="userSpaceOnUse"
           >
-            <path d="M30 0H0V20" fill="none" stroke="#363833" />
+            <path d="M30 0H0V20" fill="none" stroke="#283855" />
           </pattern>
           <marker
             id={`arrow-${id}`}
@@ -266,10 +266,10 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             refY="3.5"
             orient="auto"
           >
-            <path d="M0 0L7 3.5L0 7" fill="#d5b56f" />
+            <path d="M0 0L7 3.5L0 7" fill="#e6ff42" />
           </marker>
         </defs>
-        <rect width="600" height="400" rx="10" fill="#20231f" />
+        <rect width="600" height="400" rx="10" fill="#111b38" />
         <rect
           x="18"
           y="12"
@@ -318,7 +318,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
           y1={c.y * 4}
           x2={c.targetX * 6}
           y2={c.targetY * 4}
-          stroke="#d5b56f"
+          stroke="#e6ff42"
           strokeWidth="2"
           markerEnd={`url(#arrow-${id})`}
         />
@@ -329,13 +329,13 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             cx={c.targetX * 6}
             cy={c.targetY * 4}
             r="13"
-            fill="#22261f"
-            stroke="#d5b56f"
+            fill="#172746"
+            stroke="#e6ff42"
             strokeDasharray="3 3"
           />
           <path
             d={`M${c.targetX * 6 - 6} ${c.targetY * 4}h12M${c.targetX * 6} ${c.targetY * 4 - 6}v12`}
-            stroke="#d5b56f"
+            stroke="#e6ff42"
           />
         </g>
         {a.map((p, i) => (
@@ -345,14 +345,14 @@ export function FloorPlan({ value, onChange, readonly = false }) {
               cy={p.y * 4}
               r="20"
               fill={colors[i % colors.length]}
-              stroke="#161815"
+              stroke="#101a32"
               strokeWidth="3"
             />
             <text
               x={p.x * 6}
               y={p.y * 4 + 5}
               textAnchor="middle"
-              fill="#181b16"
+              fill="#172746"
               fontSize="15"
               fontWeight="700"
             >
@@ -377,9 +377,9 @@ export function FloorPlan({ value, onChange, readonly = false }) {
               width="25"
               height="24"
               rx="4"
-              fill="#d5b56f"
+              fill="#e6ff42"
             />
-            <path d="M12 -9L24 -15V15L12 9Z" fill="#d5b56f" />
+            <path d="M12 -9L24 -15V15L12 9Z" fill="#e6ff42" />
           </g>
           <text
             x={c.x * 6}

@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import "./cinema.css";
+import "./shotmate.css";
 import { Storyboard } from "./storyboard.jsx";
 async function api(url, options = {}) {
   const r = await fetch("/api" + url, {
@@ -234,7 +235,7 @@ function App() {
           }}
         >
           <Logo />
-          <h1>进入分镜工作台</h1>
+          <h1>你的 AI 分镜师。</h1>
           <p>输入团队访问密码，继续创作。</p>
           <label>
             访问密码
@@ -253,7 +254,7 @@ function App() {
       </div>
     );
   return (
-    <div className="simple-app">
+    <div className={cn("simple-app", project && "has-project")}>
       <header className="simple-header">
         <Logo />
         <div className="header-actions">
@@ -280,12 +281,24 @@ function App() {
           </button>
         </div>
       )}
-      <main className="two-windows">
+      <section className="studio-intro" aria-label="Shot Mate 分镜工作台">
+        <div>
+          <p className="studio-eyebrow">从文字，到镜头。</p>
+          <h1>把故事，<br className="intro-break" />画进下一镜<span>。</span></h1>
+          <p className="studio-description">你来讲故事，Shot Mate 帮你安排画面、表演与声音。</p>
+        </div>
+        <ol className="workflow-steps" aria-label="创作流程">
+          <li><span>01</span><div><strong>放入剧本</strong><small>粘贴文字，或导入文件</small></div></li>
+          <li><span>02</span><div><strong>拆解镜头</strong><small>自动估时，保留原对白</small></div></li>
+          <li><span>03</span><div><strong>逐镜定稿</strong><small>审阅故事板，导出分镜表</small></div></li>
+        </ol>
+      </section>
+      <main className="two-windows" id="workspace">
         <form className="input-window" onSubmit={generate}>
           <div className="window-heading">
-            <h1>
-              <span>01</span>剧本
-            </h1>
+            <h2>
+              <span>01</span>你的剧本
+            </h2>
             <button
               type="button"
               className="text-button"
@@ -310,7 +323,7 @@ function App() {
             className="simple-script"
             aria-label="剧本正文"
             placeholder={
-              "把剧本粘贴在这里…\n\n保留场景、动作和对白，直接点下方生成。"
+              "故事从这里开始…\n\n粘贴剧本，保留场景、动作和对白。\n其余的，交给 Shot Mate。"
             }
             value={script}
             onChange={(e) => setScript(e.target.value)}
@@ -400,24 +413,19 @@ function App() {
             )}
           {!project ? (
             <div className="output-empty">
-              <div className="empty-columns">
-                <span>镜号 / 秒数</span>
-                <span>画面与表演</span>
-                <span>摄影与声音</span>
-              </div>
+              <figure className="reference-frame">
+                <img src="/shotmate/cinema-reference.png" alt="雨夜洗衣店，女子手持信封站在门边的电影视觉参考" width="1672" height="941" />
+                <figcaption><span>视觉参考 · AI 示意图</span><span>尚未生成你的分镜</span></figcaption>
+              </figure>
               <div className="empty-message">
-                <Clapperboard size={32} />
-                <h2>把文字，变成一个个镜头。</h2>
-                <p>故事板、机位图与分镜表，生成后在这里逐镜展开。</p>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={example}
-                  disabled={busy}
-                >
-                  查看预写示例 <ArrowUpRight size={14} />
+                <span className="brand-kicker">每一镜，都有它的理由。</span>
+                <h2>你的故事，准备开拍。</h2>
+                <p>放入剧本，生成后在这里逐镜审阅。<br />景别、运镜、光线、表演与声音，一起安排。</p>
+                <button type="button" className="example-button" onClick={example} disabled={busy}>
+                  {busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />} 查看预写示例 <ArrowUpRight size={16} />
                 </button>
               </div>
+              <div className="empty-columns"><span>镜号与时长</span><span>表演与调度</span><span>摄影与声音</span></div>
             </div>
           ) : (
             <div className="project-view">
@@ -818,6 +826,7 @@ function App() {
           )}
         </section>
       </main>
+      <footer className="studio-footer"><span>Shot Mate · 把故事，画进下一镜。</span><span>时长按对白与表演估算，由你定稿。</span></footer>
       {toast && (
         <div className="toast" role="status">
           <Check size={16} />
@@ -888,16 +897,9 @@ function App() {
 }
 function Logo() {
   return (
-    <div className="logo">
-      <div className="logo-symbol">
-        <span />
-        <span />
-        <span />
-      </div>
-      <strong>
-        LIPA<span>分镜工作台</span>
-      </strong>
-    </div>
+    <a className="logo" href="#workspace" aria-label="Shot Mate · 分镜工作台">
+      <span className="shotmate-wordmark"><img src="/shotmate/wordmark.png" alt="Shot Mate" width="2172" height="724" /></span>
+    </a>
   );
 }
 function Modal({ children, onClose, wide = false }) {

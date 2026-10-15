@@ -1,8 +1,11 @@
-# 发给程序员 · Lipa 分镜工作台
+# 发给程序员 · Shot Mate分镜工作台
 
+> 2026-10-16 最新决定：产品更名「Shot Mate」，使用 Raycast Icon Maker 选色；#2145FF 仅作为既有蓝色对照。旧名称、女画师标志和旧 Slogan 以下仅作历史记录，不能视为当前定稿。仓库名、存储键和资源文件名保持兼容。
 源码：https://github.com/lipaliu/lipa-shot-studio （公开仓库，默认分支 codex/initial-delivery）
 
 ## 产品要求已定
+
+2026-10-15 品牌更新：产品名已定为「Shot Mate」，本版 Slogan「你讲故事，Shot Mate落笔。」和 Logo 待用户审阅。工作台已应用品牌，`/brand/` 提供完整规范与 PNG 下载，共享颜色在 `public/brand/tokens.css`。详见 [BRAND-SYSTEM.md](BRAND-SYSTEM.md)。这次不修改模型配置，不表示真实生成连接已修复。
 
 2026-10-14 UI 更新：按用户选择实现 **A 深色暖金视觉 + B 俯视机位图 + D 故事板**。结果默认故事板，保留分镜表切换；详情见 [UI-STORYBOARD.md](UI-STORYBOARD.md)。未接生图模型：占位构图明确标注示意，支持上传实际分镜图。真实模型返回 `blocking` 的空间质量仍需实测。
 

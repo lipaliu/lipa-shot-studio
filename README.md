@@ -1,6 +1,12 @@
-# Lipa 分镜工作台
+# Shot Mate · 你的 AI 分镜师
+
+**你的 AI 分镜师。**
 
 将剧本交给 GPT 或豆包，自动串联 Higgsfield 创作 Skills，输出可逐镜审核的分镜表。网站独立运行，不依赖 Codex / ChatGPT 会话，不调用 Higgsfield 付费 API，也不生成视频。
+
+品牌与 UI 规范位于 `/brand/`，包含透明 Logo 下载、配色与排版说明。实现与素材说明见 [Shot Mate 设计系统](docs/BRAND-SYSTEM.md)。
+
+最新 UI 交接与验证边界见 [Shot Mate 交接](docs/SHOT-MATE-HANDOFF.md)。
 
 ## 本地启动
 
@@ -32,7 +38,7 @@ npm start
 
 ## 导演规则来源
 
-界面已按用户选择更新为深色暖金工作台：故事板、俯视机位图与完整分镜表相互配合。支持逐镜上传分镜图和调整站位；未上传时显示构图示意，不含自动生图服务。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
+界面已按用户选择更新为 Shot Mate 钴蓝工作台，暖白剧本区与深蓝分镜区并排：故事板、俯视机位图与完整分镜表相互配合。支持逐镜上传分镜图和调整站位；未上传时显示构图示意，不含自动生图服务。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
 
 主创作规则来自 OSideMedia 的 Higgsfield 社区 Skills：shotlist-director、acting、camera、style、audio。原文快照位于 [vendor/higgsfield](vendor/higgsfield)，许可为 MIT。实际选段、版本和 SHA-256 记录在 manifest，后台直接读取选段传给模型。不是只写一个“你是导演”的提示词，也不是 Higgsfield 官方接口。
 
