@@ -6,6 +6,8 @@ import {
   Check,
   Copy,
   ImagePlus,
+  LoaderCircle,
+  Sparkles,
   Map,
   Maximize2,
   Save,
@@ -520,6 +522,9 @@ export function Storyboard({
   shots,
   project,
   onSave,
+  onGenerateImage,
+  onOpenImageSettings,
+  imageConfigured,
   onEdit,
   onCopy,
   onApprove,
@@ -532,6 +537,7 @@ export function Storyboard({
   const [draft, setDraft] = useState(null),
     [dirty, setDirty] = useState(false),
     [saving, setSaving] = useState(false),
+    [imageBusy, setImageBusy] = useState(false),
     [error, setError] = useState("");
   const upload = useRef(),
     strip = useRef();
@@ -564,7 +570,11 @@ export function Storyboard({
   const view = draft?.id === shot?.id ? draft : shot;
   if (!view) return <div className="empty-table">当前筛选下没有镜头。</div>;
   const index = shots.findIndex((s) => s.id === shot.id),
-    locked = project.status === "running" || saving;
+    imageTask = project.imageTasks?.[shot.id],
+    imagePending = ["queued", "in_progress"].includes(imageTask?.status),
+    sceneComplete = project.completedScenes?.includes(shot.sceneIndex),
+    locked = (project.status === "running" && !sceneComplete) || saving || imageBusy,
+    editLocked = project.status === "running" || saving || imageBusy;
   function change(key, value) {
     setDraft((d) => ({ ...d, [key]: value }));
     setDirty(true);
@@ -613,6 +623,18 @@ export function Storyboard({
       setError("");
     } catch (e) {
       setError(e.message);
+    }
+  }
+  async function generate() {
+    if (!imageConfigured) return onOpenImageSettings();
+    setImageBusy(true);
+    setError("");
+    try {
+      await onGenerateImage(shot);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setImageBusy(false);
     }
   }
   return (
@@ -675,8 +697,16 @@ export function Storyboard({
               </div>
               <div className="frame-tools">
                 <button
+                  className="secondary compact"
+                  disabled={locked || dirty || imagePending}
+                  onClick={generate}
+                >
+                  {imageBusy || imagePending ? <LoaderCircle size={15} className="spin" /> : <Sparkles size={15} />}
+                  {imageBusy ? "提交中…" : imagePending ? `图片生成中 ${imageTask.progress || 0}%` : view.storyboardImage?.startsWith("/api/images/") ? "重新生成图片" : "生成图片"}
+                </button>
+                <button
                   className="text-button"
-                  disabled={locked}
+                  disabled={editLocked || imagePending}
                   onClick={() => upload.current.click()}
                 >
                   <ImagePlus size={16} />
@@ -685,16 +715,18 @@ export function Storyboard({
                 {view.storyboardImage ? (
                   <button
                     className="text-button"
-                    disabled={locked}
+                    disabled={editLocked || imagePending}
                     onClick={() => change("storyboardImage", undefined)}
                   >
                     <X size={14} />
                     移除图片
                   </button>
                 ) : (
-                  <span>未接生图 · 示意图用于组织镜头</span>
+                  <span>未生成图片 · 示意图用于组织镜头</span>
                 )}
               </div>
+              {imageTask?.status === "failed" && <p className="form-error" role="alert">图片生成失败：{imageTask.error}</p>}
+              {imagePending && <p className="field-note">图片在后台生成中，可以先切换到下一镜查看文字分镜。</p>}
               <input
                 ref={upload}
                 type="file"
@@ -718,7 +750,7 @@ export function Storyboard({
           ) : (
             <FloorPlan
               value={view.blocking}
-              readonly={locked}
+              readonly={editLocked}
               onChange={(v) => change("blocking", v)}
             />
           )}
@@ -728,7 +760,7 @@ export function Storyboard({
             镜头手记
             <button
               className="text-button"
-              disabled={dirty || locked}
+              disabled={dirty || editLocked}
               onClick={() => onEdit(shot)}
             >
               编辑 <ArrowRight size={14} />
@@ -799,7 +831,7 @@ export function Storyboard({
             <>
               <button
                 className="text-button"
-                disabled={locked}
+                disabled={editLocked}
                 onClick={() => {
                   setDraft(structuredClone(shot));
                   setDirty(false);
@@ -808,7 +840,7 @@ export function Storyboard({
               >
                 撤销修改
               </button>
-              <button className="primary" disabled={locked} onClick={save}>
+              <button className="primary" disabled={editLocked} onClick={save}>
                 <Save size={15} />
                 {saving ? "保存中…" : "保存镜头"}
               </button>

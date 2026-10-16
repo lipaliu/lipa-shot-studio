@@ -10,9 +10,14 @@ import {
   draftSchema,
   blockingSchema,
   storyboardImageSchema,
+  artSchema,
+  auditSchema,
+  normalizeDraftOutput,
+  normalizeArtOutput,
+  normalizeAuditOutput,
 } from "../server/schema.js";
 import { runPipeline } from "../server/pipeline.js";
-import { requestJSON, modelJSON } from "../server/provider.js";
+import { requestJSON, modelJSON, parseModelJSON } from "../server/provider.js";
 import { ruleProvenance } from "../server/rules.js";
 const fixture = JSON.parse(
   fs.readFileSync(new URL("../examples/example.json", import.meta.url)),
@@ -71,6 +76,92 @@ test("outline must cover the source with continuous ranges", () => {
     ),
   );
 });
+test("outline absorbs blank-only gaps and trailing separators", () => {
+  const outline = {
+    scenes: [
+      { sourceStart: 1, sourceEnd: 1 },
+      { sourceStart: 3, sourceEnd: 3 },
+    ],
+  };
+  validateOutline(outline, scriptLines("甲\n\n乙\n\n"));
+  assert.deepEqual(
+    outline.scenes.map(({ sourceStart, sourceEnd }) => [sourceStart, sourceEnd]),
+    [
+      [1, 1],
+      [2, 5],
+    ],
+  );
+});
+test("outline still rejects gaps containing source text", () => {
+  assert.throws(() =>
+    validateOutline(
+      {
+        scenes: [
+          { sourceStart: 1, sourceEnd: 1 },
+          { sourceStart: 3, sourceEnd: 3 },
+        ],
+      },
+      scriptLines("甲\n漏掉的原文\n乙"),
+    ),
+  );
+});
+test("model output normalization repairs common compatible-provider values", () => {
+  const shot = structuredClone(fixture.shots[0]);
+  shot.dialogue = [];
+  shot.continuityIn = null;
+  shot.continuityOut = null;
+  shot.speakingCps = 0;
+  shot.actionSeconds = "3秒";
+  shot.pauseSeconds = "1";
+  shot.overlap = "否";
+  shot.blocking.camera.x = 100;
+  shot.blocking.light.y = 0;
+  const parsed = draftSchema.parse(normalizeDraftOutput({ shots: [shot] }));
+  assert.equal(parsed.shots[0].continuityIn, "无明确前置状态");
+  assert.equal(parsed.shots[0].speakingCps, 4);
+  assert.equal(parsed.shots[0].actionSeconds, 3);
+  assert.equal(parsed.shots[0].pauseSeconds, 1);
+  assert.equal(parsed.shots[0].overlap, false);
+  assert.equal(parsed.shots[0].blocking.camera.x, 95);
+  assert.equal(parsed.shots[0].blocking.light.y, 5);
+});
+test("art and review normalization keep valid identities and fill harmless omissions", () => {
+  const shots = fixture.shots.slice(0, 2);
+  const art = artSchema.parse(
+    normalizeArtOutput(
+      { shots: [{ id: shots[0].id, lighting: null, music: null }] },
+      shots,
+    ),
+  );
+  assert.deepEqual(
+    art.shots.map((shot) => shot.id),
+    shots.map((shot) => shot.id),
+  );
+  assert.equal(art.shots[0].lighting, shots[0].lighting);
+  const audit = auditSchema.parse(
+    normalizeAuditOutput(
+      {
+        issues: [
+          {
+            shotId: "不存在的镜号",
+            severity: "错误",
+            category: null,
+            message: "需要复核",
+            suggestion: null,
+          },
+        ],
+      },
+      shots,
+    ),
+  );
+  assert.deepEqual(audit.issues[0], {
+    shotId: "",
+    severity: "error",
+    category: "综合审阅",
+    message: "需要复核",
+    suggestion: "请人工复核并调整",
+  });
+});
 test("fabricated or altered dialogue is rejected", () => {
   const p = clone();
   p.shots[1].dialogue[0].text = "你没有想清楚。";
@@ -90,6 +181,18 @@ test("missing source and duplicated dialogue create specific review issues", () 
     checkShots(q.shots, scriptLines(q.script)).some(
       (x) => x.category === "对白重复",
     ),
+  );
+});
+test("script metadata labels are not mistaken for spoken dialogue", () => {
+  const lines = scriptLines("标题：最后一班公交");
+  const shot = {
+    ...structuredClone(fixture.shots[0]),
+    sourceLines: [1],
+    dialogue: [],
+  };
+  assert.equal(
+    checkShots([shot], lines).some((issue) => issue.category === "对白覆盖"),
+    false,
   );
 });
 test("prompt is rebuilt from current editable fields", () => {
@@ -129,6 +232,25 @@ test("both providers use server-side authorization and JSON contract", async () 
     );
   }
 });
+
+test("GPT and domestic compatible models use their documented token parameter", async () => {
+  for (const [model, parameter] of [
+    ["gpt-5.4-mini-official", "max_completion_tokens"],
+    ["deepseek-v4-flash", "max_tokens"],
+    ["glm-5.3-flash", "max_tokens"],
+    ["qwen3.5-flash", "max_tokens"],
+  ]) {
+    let body;
+    await requestJSON({ name: "openai", model, key: "test-secret" }, "JSON", "test", {
+      fetchImpl: async (_url, options) => {
+        body = JSON.parse(options.body);
+        return new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }));
+      },
+    });
+    assert.equal(body[parameter], model === "deepseek-v4-flash" ? 32000 : 14000);
+    assert.equal(body[parameter === "max_tokens" ? "max_completion_tokens" : "max_tokens"], undefined);
+  }
+});
 test("provider errors do not echo keys or upstream error payload", async () => {
   await assert.rejects(
     () =>
@@ -155,16 +277,94 @@ test("truncated completion is a failure, not successful partial data", async () 
             }),
           ),
       }),
-    /长度上限/,
+    (error) =>
+      error.code === "length" &&
+      error.repairable === true &&
+      error.message.includes("长度上限"),
   );
 });
-test("invalid structured output receives one bounded repair attempt", async () => {
+test("compatible JSON parser accepts complete fenced or wrapped objects", () => {
+  assert.deepEqual(parseModelJSON('```json\n{"ok":true}\n```'), { ok: true });
+  assert.deepEqual(parseModelJSON('<think>分析中</think>结果：\n{"ok":true}\n完成'), { ok: true });
+  assert.throws(() => parseModelJSON('说明：{"ok":true'), /有效 JSON/);
+});
+test("invalid structured output receives bounded repair attempts", async () => {
   let n = 0;
   const parsed = await modelJSON({}, "JSON", "request", draftSchema, {
     call: async () => ({ value: ++n === 1 ? {} : { shots: fixture.shots } }),
   });
   assert.equal(n, 2);
   assert.equal(parsed.shots.length, 4);
+});
+test("invalid JSON and truncated output are rebuilt while failed usage is retained", async () => {
+  for (const code of ["invalid_json", "length"]) {
+    let calls = 0;
+    const prompts = [];
+    const usage = [];
+    const retries = [];
+    const parsed = await modelJSON({}, "JSON", "request", draftSchema, {
+      call: async (_provider, _system, user) => {
+        prompts.push(user);
+        if (calls++ === 0)
+          throw Object.assign(new Error("bad output"), {
+            code,
+            repairable: true,
+            usage: { total_tokens: 9 },
+          });
+        return { value: { shots: fixture.shots }, usage: { total_tokens: 10 } };
+      },
+      onUsage: (value) => usage.push(value.total_tokens),
+      onRetry: (value) => retries.push(value),
+    });
+    assert.equal(parsed.shots.length, 4);
+    assert.deepEqual(usage, [9, 10]);
+    assert.equal(retries[0].code, code);
+    assert.match(prompts[1], code === "length" ? /长度上限截断/ : /完整 JSON/);
+  }
+});
+test("transient provider failures retry once and authentication failures do not retry", async () => {
+  let transientCalls = 0;
+  const parsed = await modelJSON({}, "JSON", "request", draftSchema, {
+    call: async () => {
+      if (transientCalls++ === 0)
+        throw Object.assign(new Error("temporary"), {
+          code: "http_429",
+          retryable: true,
+        });
+      return { value: { shots: fixture.shots } };
+    },
+    sleep: async () => {},
+  });
+  assert.equal(parsed.shots.length, 4);
+  assert.equal(transientCalls, 2);
+
+  let authCalls = 0;
+  await assert.rejects(
+    () =>
+      modelJSON({}, "JSON", "request", draftSchema, {
+        call: async () => {
+          authCalls++;
+          throw Object.assign(new Error("认证失败"), { code: "http_401" });
+        },
+        sleep: async () => {},
+      }),
+    /认证失败/,
+  );
+  assert.equal(authCalls, 1);
+});
+test("persistent schema failures stop after two repair attempts", async () => {
+  let calls = 0;
+  await assert.rejects(
+    () =>
+      modelJSON({}, "JSON", "request", draftSchema, {
+        call: async () => {
+          calls++;
+          return { value: {} };
+        },
+      }),
+    /自动修复两次/,
+  );
+  assert.equal(calls, 3);
 });
 test("pipeline orchestrates four stages, stores checkpoints and marks ready only after review (mock model)", async () => {
   const p = {
