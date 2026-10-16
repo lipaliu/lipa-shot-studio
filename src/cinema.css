@@ -786,6 +786,29 @@ td p {
   gap: 10px;
   margin: 22px 0;
 }
+.settings-sections {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0 8px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.settings-sections button {
+  flex: 1;
+  padding: 11px 12px;
+  border-radius: 7px;
+  text-align: center;
+  color: var(--muted);
+}
+.settings-sections button.active {
+  background: #23376b;
+  color: #fff;
+}
+.settings-sections span {
+  margin-left: 8px;
+  font-size: 11px;
+}
 .provider-tabs button {
   flex: 1;
   padding: 14px;
@@ -814,6 +837,50 @@ td p {
 }
 .provider-form input {
   width: 100%;
+}
+.model-preset-group {
+  margin: 0 0 18px;
+}
+.model-preset-group > span {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.model-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.model-presets button {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+  line-height: 1.45;
+}
+.model-presets button.active {
+  border-color: var(--accent);
+  background: #23376b;
+  color: #fff;
+}
+.model-presets small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.provider-form .image-key-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.provider-form .image-key-choice input {
+  width: auto;
+}
+.image-provider-form {
+  margin-top: 22px;
 }
 .field-note {
   color: var(--muted);
@@ -1129,6 +1196,9 @@ td p {
   gap: 12px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 14px;
+}
+.frame-tools button {
+  white-space: nowrap;
 }
 .frame-tools > span {
   font-size: 12px;

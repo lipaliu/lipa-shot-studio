@@ -5,6 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 import mammoth from "mammoth";
 import {
+  dataDir,
   saveProject,
   getProject,
   listProjects,
@@ -14,6 +15,7 @@ import {
   recoverJobs,
 } from "./storage.js";
 import { selectedProvider, requestJSON } from "./provider.js";
+import { startImageTask, finishImageTask } from "./image.js";
 import {
   projectInput,
   shotSchema,
@@ -33,6 +35,9 @@ if (!["127.0.0.1", "localhost", "::1"].includes(host) && password.length < 12)
 const sessions = new Map(),
   jobs = new Map();
 let activeJob = null;
+let activeImageJob = false;
+const imageDir = path.join(dataDir, "images");
+fs.mkdirSync(imageDir, { recursive: true, mode: 0o700 });
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   if (
@@ -147,14 +152,25 @@ const settingsSchema = z.object({
   provider: z.enum(["openai", "doubao"]),
   openai: z.object({
     model: z.string().max(200),
+    baseUrl: z.string().max(500).optional(),
     key: z.string().max(1000).optional(),
     clearKey: z.boolean().optional(),
   }),
   doubao: z.object({
     model: z.string().max(200),
+    baseUrl: z.string().max(500).optional(),
     key: z.string().max(1000).optional(),
     clearKey: z.boolean().optional(),
   }),
+  image: z
+    .object({
+      model: z.string().max(200),
+      baseUrl: z.string().url().max(500).refine((value) => new URL(value).protocol === "https:"),
+      useTextKey: z.boolean(),
+      key: z.string().max(1000).optional(),
+      clearKey: z.boolean().optional(),
+    })
+    .optional(),
 });
 app.put("/api/settings", (req, res) =>
   res.json(saveConfig(settingsSchema.parse(req.body))),
@@ -213,11 +229,30 @@ function start(p) {
   p.error = null;
   p.provider = { name: provider.name, model: provider.model };
   saveProject(p);
-  runPipeline(p, provider, { save: saveProject, signal: controller.signal })
+  const savePipelineProject = (next) => {
+    const latest = getProject(next.id);
+    if (latest) {
+      const savedShots = new Map(
+        (latest.shots || []).map((shot) => [shot.id, shot]),
+      );
+      next.shots = (next.shots || []).map(
+        (shot) => savedShots.get(shot.id) || shot,
+      );
+      next.imageTasks = {
+        ...(next.imageTasks || {}),
+        ...(latest.imageTasks || {}),
+      };
+    }
+    return saveProject(next);
+  };
+  runPipeline(p, provider, {
+    save: savePipelineProject,
+    signal: controller.signal,
+  })
     .catch((e) => {
       p.status = controller.signal.aborted ? "cancelled" : "failed";
       p.error = e.message;
-      saveProject(p);
+      savePipelineProject(p);
     })
     .finally(() => {
       jobs.delete(p.id);
@@ -275,8 +310,6 @@ app.post("/api/projects/:id/review", (req, res) => {
 app.patch("/api/projects/:id/shots/:shotId", (req, res) => {
   const p = getProject(req.params.id);
   if (!p) return res.sendStatus(404);
-  if (p.status === "running")
-    return res.status(409).json({ error: "请等待生成结束再修改。" });
   const i = p.shots.findIndex((s) => s.id === req.params.shotId);
   if (i < 0) return res.sendStatus(404);
   const status = z
@@ -286,6 +319,13 @@ app.patch("/api/projects/:id/shots/:shotId", (req, res) => {
   checkShots([{ ...next, id: req.params.shotId }], scriptLines(p.script));
   const prev = p.shots[i],
     changed = JSON.stringify(shotSchema.parse(prev)) !== JSON.stringify(next);
+  if (
+    p.status === "running" &&
+    (!p.completedScenes?.includes(prev.sceneIndex) || changed)
+  )
+    return res
+      .status(409)
+      .json({ error: "生成期间可审核已完成场次，文字内容请在全片完成后修改。" });
   if (changed) {
     p.auditStale = true;
     p.aiIssues = [];
@@ -300,6 +340,94 @@ app.patch("/api/projects/:id/shots/:shotId", (req, res) => {
   };
   saveProject(p);
   res.json(serialize(p));
+});
+app.get("/api/images/:name", (req, res) => {
+  if (!/^[0-9a-f-]{36}\.(?:png|jpg|webp)$/.test(req.params.name))
+    return res.sendStatus(404);
+  const file = path.join(imageDir, req.params.name);
+  res.sendFile(file, { dotfiles: "allow" }, (error) => {
+    if (error && !res.headersSent) res.sendStatus(error.status || 404);
+  });
+});
+async function completeImageTask(projectId, shotId, image, task) {
+  try {
+    const generated = await finishImageTask(image, task, {
+      onProgress: (state) => {
+        const current = getProject(projectId);
+        const pending = current?.imageTasks?.[shotId];
+        if (!pending || pending.id !== task.id) return;
+        if (pending.status !== state.status || pending.progress !== state.progress) {
+          pending.status = state.status;
+          pending.progress = state.progress || 0;
+          saveProject(current);
+        }
+      },
+    });
+    const fresh = getProject(projectId);
+    const target = fresh?.shots.find((s) => s.id === shotId);
+    if (!target) throw new Error("原镜头已不存在，无法保存生成图片。");
+    const name = `${crypto.randomUUID()}.${generated.extension}`;
+    fs.writeFileSync(path.join(imageDir, name), generated.bytes, { mode: 0o600 });
+    target.storyboardImage = `/api/images/${name}`;
+    fresh.imageTasks[shotId] = {
+      ...fresh.imageTasks[shotId],
+      status: "completed",
+      progress: 100,
+      error: "",
+    };
+    saveProject(fresh);
+  } catch (error) {
+    const fresh = getProject(projectId);
+    if (fresh?.imageTasks?.[shotId]?.id === task.id) {
+      fresh.imageTasks[shotId].status = "failed";
+      fresh.imageTasks[shotId].error = error.message || "图片生成失败。";
+      saveProject(fresh);
+    }
+  } finally {
+    activeImageJob = false;
+  }
+}
+app.post("/api/projects/:id/shots/:shotId/image", async (req, res) => {
+  const p = getProject(req.params.id);
+  if (!p) return res.sendStatus(404);
+  const shot = p.shots.find((s) => s.id === req.params.shotId);
+  if (!shot) return res.sendStatus(404);
+  const sceneComplete = p.completedScenes?.includes(shot.sceneIndex);
+  if (p.status !== "ready" && !(p.status === "running" && sceneComplete))
+    return res.status(409).json({ error: "请等待这一场文字分镜生成完成。" });
+  const image = config().image;
+  if (!image.key || !image.model)
+    return res.status(400).json({ error: "请先在设置中配置图片模型。" });
+  if (activeImageJob)
+    return res.status(409).json({ error: "另一张图片正在生成，请稍后再试。" });
+  activeImageJob = true;
+  try {
+    const prompt = [
+      "生成一张电影分镜静帧，只画一个镜头。保留人物身份、道具及光源连续性；不要添加文字、水印、分格或镜头标注。",
+      `画幅：${p.aspect}。影像基准：${p.outline?.look || p.style}。`,
+      `场景：${p.outline?.scenes[shot.sceneIndex]?.name || ""}。`,
+      `画面：${shot.description}`,
+      `表演：${shot.performance}`,
+      `摄影：${shot.framing}；${shot.camera}`,
+      `美术与光线：${shot.style}；${shot.artDirection}；${shot.lighting}`,
+    ].join("\n").slice(0, 12000);
+    const task = await startImageTask(image, prompt, p.aspect);
+    p.imageTasks ||= {};
+    p.imageTasks[shot.id] = {
+      id: task.id,
+      status: task.status || "queued",
+      progress: task.progress || 0,
+      model: image.model,
+      baseUrl: image.baseUrl,
+      error: "",
+    };
+    saveProject(p);
+    res.status(202).json(serialize(p));
+    void completeImageTask(p.id, shot.id, image, task);
+  } catch (error) {
+    activeImageJob = false;
+    throw error;
+  }
 });
 app.post("/api/example", (_req, res) => {
   const raw = JSON.parse(
@@ -407,6 +535,22 @@ app.use((err, _req, res, _next) => {
     });
 });
 recoverJobs();
+for (const summary of listProjects()) {
+  if (activeImageJob) break;
+  const project = getProject(summary.id);
+  const pending = Object.entries(project.imageTasks || {}).find(([, task]) =>
+    ["queued", "in_progress"].includes(task.status),
+  );
+  if (pending) {
+    activeImageJob = true;
+    const [shotId, task] = pending;
+    void completeImageTask(project.id, shotId, {
+      ...config().image,
+      model: task.model,
+      baseUrl: task.baseUrl,
+    }, task);
+  }
+}
 const server = app.listen(port, host, () =>
   console.log(`Lipa 分镜工作台 http://${host}:${port}`),
 );

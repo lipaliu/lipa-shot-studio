@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import net from "node:net";
+import { once } from "node:events";
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lipa-shot-test-"));
 let child,
   base,
@@ -55,8 +56,12 @@ test.before(async () => {
     });
   });
 });
-test.after(() => {
-  child?.kill("SIGTERM");
+test.after(async () => {
+  if (child && child.exitCode === null) {
+    const closed = once(child, "close");
+    child.kill("SIGTERM");
+    await closed;
+  }
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 test("authenticated HTTP workflow: configuration, import, review, persistence and export", async () => {
@@ -64,6 +69,12 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
   const login = await call("/api/login", { password: "test-password-2026" });
   assert.equal(login.status, 200);
   cookie = login.headers.get("set-cookie").split(";")[0];
+  const imageName = "123e4567-e89b-42d3-a456-426614174000.png";
+  fs.mkdirSync(path.join(tmp, "images"), { recursive: true });
+  fs.writeFileSync(path.join(tmp, "images", imageName), Buffer.from("test-image"));
+  const imageResponse = await call(`/api/images/${imageName}`);
+  assert.equal(imageResponse.status, 200);
+  assert.match(imageResponse.headers.get("content-type"), /image\/png/);
   assert.equal(
     (
       await call("/api/projects", {}, "POST", {
@@ -87,6 +98,24 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
   ).json();
   assert.equal(cfg.openai.hasKey, true);
   assert.ok(!JSON.stringify(cfg).includes("do-not-return"));
+  const imageCfg = await (
+    await call(
+      "/api/settings",
+      {
+        provider: "doubao",
+        openai: { model: "test", key: "" },
+        doubao: { model: "", key: "" },
+        image: {
+          model: "gpt-image-2",
+          baseUrl: "https://toapis.cn/v1",
+          useTextKey: true,
+        },
+      },
+      "PUT",
+    )
+  ).json();
+  assert.equal(imageCfg.image.configured, true);
+  assert.ok(!JSON.stringify(imageCfg).includes("do-not-return"));
   const input = await (
     await call("/api/import", {
       name: "test.txt",

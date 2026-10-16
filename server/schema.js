@@ -20,7 +20,12 @@ export const blockingSchema = z.object({
 export const storyboardImageSchema = z
   .string()
   .max(2800000)
-  .regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/);
+  .refine(
+    (value) =>
+      /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) ||
+      /^\/api\/images\/[0-9a-f-]{36}\.(?:png|jpg|webp)$/.test(value),
+    "图片地址无效。",
+  );
 export const dialogueSchema = z.object({
   sourceLine: z.number().int().positive(),
   speaker: text,
@@ -97,6 +102,217 @@ export const auditSchema = z.object({
     )
     .max(300),
 });
+
+const objectValue = (value) =>
+  value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const textValue = (value, fallback, max = 12000) =>
+  typeof value === "string" && value.trim()
+    ? value.slice(0, max)
+    : fallback;
+const numberValue = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return undefined;
+  const match = value.trim().match(/^(-?\d+(?:\.\d+)?)\s*(?:秒|s)?$/i);
+  return match ? Number(match[1]) : undefined;
+};
+const integerValue = (value) => {
+  const number = numberValue(value);
+  return Number.isInteger(number) ? number : undefined;
+};
+const booleanValue = (value) => {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || /^(true|是|有|重叠)$/i.test(String(value).trim()))
+    return true;
+  if (value === 0 || /^(false|否|无|不重叠)$/i.test(String(value).trim()))
+    return false;
+  return undefined;
+};
+const clamp = (value, min, max, fallback) => {
+  const number = numberValue(value);
+  return Math.min(max, Math.max(min, number ?? fallback));
+};
+const stringList = (value, max) =>
+  (Array.isArray(value) ? value : [])
+    .filter((item) => typeof item === "string")
+    .map((item) => item.slice(0, 12000))
+    .slice(0, max);
+
+export function normalizeOutlineOutput(value, defaults = {}) {
+  const raw = objectValue(value);
+  return {
+    ...raw,
+    title: textValue(raw.title, defaults.title || "未命名剧本"),
+    style: textValue(raw.style, defaults.style || "依剧本判断"),
+    look: textValue(raw.look, defaults.look || defaults.style || "依剧本判断"),
+    characters: stringList(raw.characters, 100),
+    assumptions: stringList(raw.assumptions, 100),
+    scenes: (Array.isArray(raw.scenes) ? raw.scenes : [])
+      .slice(0, 40)
+      .map((item, index) => {
+        const scene = objectValue(item);
+        return {
+          ...scene,
+          name: textValue(scene.name, `第 ${index + 1} 场`),
+          sourceStart: integerValue(scene.sourceStart),
+          sourceEnd: integerValue(scene.sourceEnd),
+          geography: textValue(scene.geography, "空间关系待导演确认"),
+          beat: textValue(scene.beat, "本场行动与信息变化待补充"),
+        };
+      }),
+  };
+}
+
+function normalizeBlocking(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined;
+  const raw = objectValue(value);
+  const point = (item, fallback) => {
+    const source = objectValue(item);
+    return {
+      x: clamp(source.x, 5, 95, fallback.x),
+      y: clamp(source.y, 5, 95, fallback.y),
+    };
+  };
+  const camera = objectValue(raw.camera);
+  return {
+    actors: (Array.isArray(raw.actors) ? raw.actors : [])
+      .slice(0, 12)
+      .map((item, index) => {
+        const actor = objectValue(item);
+        return {
+          name: textValue(actor.name, `人物${index + 1}`, 40),
+          ...point(actor, { x: 35 + index * 10, y: 50 }),
+        };
+      }),
+    camera: {
+      ...point(camera, { x: 50, y: 85 }),
+      targetX: clamp(camera.targetX, 5, 95, 50),
+      targetY: clamp(camera.targetY, 5, 95, 50),
+    },
+    light: point(raw.light, { x: 80, y: 20 }),
+    props: (Array.isArray(raw.props) ? raw.props : [])
+      .slice(0, 12)
+      .map((item, index) => {
+        const prop = objectValue(item);
+        return {
+          name: textValue(prop.name, `道具${index + 1}`, 40),
+          ...point(prop, { x: 50, y: 50 }),
+          width: clamp(prop.width, 5, 60, 15),
+          height: clamp(prop.height, 5, 60, 15),
+        };
+      }),
+    note: textValue(raw.note, "相对位置示意，需导演确认", 1000),
+  };
+}
+
+export function normalizeDraftOutput(value) {
+  const raw = objectValue(value);
+  return {
+    ...raw,
+    shots: (Array.isArray(raw.shots) ? raw.shots : [])
+      .slice(0, 80)
+      .map((item) => {
+        const shot = objectValue(item);
+        const dialogue = (Array.isArray(shot.dialogue) ? shot.dialogue : []).map(
+          (item) => {
+            const line = objectValue(item);
+            return {
+              ...line,
+              sourceLine: integerValue(line.sourceLine),
+              speaker: textValue(line.speaker, "未标明角色"),
+              text: textValue(line.text, ""),
+            };
+          },
+        );
+        const sourceLines = [
+          ...new Set(
+            (Array.isArray(shot.sourceLines) ? shot.sourceLines : [])
+              .map(integerValue)
+              .filter((line) => Number.isInteger(line) && line > 0),
+          ),
+        ].slice(0, 300);
+        const rawSpeakingCps = numberValue(shot.speakingCps);
+        return {
+          ...shot,
+          blocking: normalizeBlocking(shot.blocking),
+          sourceLines,
+          purpose: textValue(shot.purpose, "建立本镜头的叙事信息"),
+          description: textValue(shot.description, "画面与动作待补充"),
+          performance: textValue(shot.performance, "无明确人物表演"),
+          framing: textValue(shot.framing, "景别与焦点待确认"),
+          camera: textValue(shot.camera, "固定机位"),
+          coverage: textValue(shot.coverage, "本镜头不适用正反打"),
+          continuityIn: textValue(shot.continuityIn, "无明确前置状态"),
+          continuityOut: textValue(shot.continuityOut, "无明确后续状态"),
+          dialogue,
+          speakingCps:
+            dialogue.length === 0 && (!rawSpeakingCps || rawSpeakingCps <= 0)
+              ? 4
+              : clamp(rawSpeakingCps, 1, 9, 4),
+          actionSeconds: clamp(shot.actionSeconds, 0, 180, 0),
+          pauseSeconds: clamp(shot.pauseSeconds, 0, 60, 0),
+          overlap: booleanValue(shot.overlap) ?? false,
+          timingReason: textValue(
+            shot.timingReason,
+            dialogue.length
+              ? "按对白、动作和停顿分别估算"
+              : "无对白，按动作和停顿估算",
+          ),
+        };
+      }),
+  };
+}
+
+export function normalizeArtOutput(value, shots) {
+  const raw = objectValue(value);
+  const returned = Array.isArray(raw.shots) ? raw.shots : [];
+  const byId = new Map(
+    returned
+      .map((item) => objectValue(item))
+      .filter((item) => typeof item.id === "string")
+      .map((item) => [item.id, item]),
+  );
+  return {
+    shots: shots.map((shot, index) => {
+      const item = byId.get(shot.id) || objectValue(returned[index]);
+      return {
+        id: shot.id,
+        lighting: textValue(item.lighting, shot.lighting || "待补充"),
+        artDirection: textValue(
+          item.artDirection,
+          shot.artDirection || "待补充",
+        ),
+        style: textValue(item.style, shot.style || "待补充"),
+        ambience: textValue(item.ambience, shot.ambience || "待补充"),
+        sfx: textValue(item.sfx, shot.sfx || "无额外音效"),
+        music: textValue(item.music, shot.music || "无额外配乐"),
+      };
+    }),
+  };
+}
+
+export function normalizeAuditOutput(value, shots) {
+  const raw = objectValue(value);
+  const ids = new Set(shots.map((shot) => shot.id));
+  const severity = (value) =>
+    /^(error|错误|严重)$/i.test(String(value).trim()) ? "error" : "warning";
+  return {
+    issues: (Array.isArray(raw.issues) ? raw.issues : [])
+      .slice(0, 300)
+      .map((item) => objectValue(item))
+      .filter((item) => typeof item.message === "string" && item.message.trim())
+      .map((item) => ({
+        shotId:
+          typeof item.shotId === "string" && ids.has(item.shotId)
+            ? item.shotId
+            : "",
+        severity: severity(item.severity),
+        category: textValue(item.category, "综合审阅"),
+        message: textValue(item.message, ""),
+        suggestion: textValue(item.suggestion, "请人工复核并调整"),
+      })),
+  };
+}
 export const projectInput = z.object({
   title: z.string().max(100).default("未命名剧本"),
   script: z.string().min(10).max(30000),
@@ -110,8 +326,26 @@ export function scriptLines(script) {
     .map((text, i) => ({ id: i + 1, text }));
 }
 export function validateOutline(outline, lines) {
+  const onlyBlankLines = (start, end) =>
+    start > end ||
+    lines
+      .slice(start - 1, end)
+      .every((line) => line.text.trim().length === 0);
   let next = 1;
   for (const scene of outline.scenes) {
+    // Models commonly leave blank separator lines between scene ranges, or
+    // include the same blank separator on both sides. Assign those separators
+    // deterministically while keeping omissions/overlaps of real text fatal.
+    if (
+      scene.sourceStart > next &&
+      onlyBlankLines(next, scene.sourceStart - 1)
+    )
+      scene.sourceStart = next;
+    else if (
+      scene.sourceStart < next &&
+      onlyBlankLines(scene.sourceStart, next - 1)
+    )
+      scene.sourceStart = next;
     if (
       scene.sourceStart !== next ||
       scene.sourceEnd < scene.sourceStart ||
@@ -119,6 +353,14 @@ export function validateOutline(outline, lines) {
     )
       throw new Error("分场原文范围不连续或越界，请完整覆盖原文。");
     next = scene.sourceEnd + 1;
+  }
+  if (
+    next <= lines.length &&
+    onlyBlankLines(next, lines.length) &&
+    outline.scenes.length
+  ) {
+    outline.scenes.at(-1).sourceEnd = lines.length;
+    next = lines.length + 1;
   }
   if (next !== lines.length + 1) throw new Error("分场未覆盖全部剧本。");
 }
@@ -218,7 +460,9 @@ export function checkShots(shots, lines, scene = null) {
     );
     if (
       !m ||
-      /场景|地点|时间|人物|内景|外景|第.+场|画面|音效|旁注|角色/.test(m[1])
+      /标题|场景|地点|时间|人物|内景|外景|第.+场|画面|音效|旁注|角色/.test(
+        m[1],
+      )
     )
       continue;
     const content = m[2].replace(/[”"」』]$/, "");

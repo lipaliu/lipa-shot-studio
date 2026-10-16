@@ -52,7 +52,22 @@ const duration = (s) =>
   s >= 60
     ? `${Math.floor(s / 60)}分${Math.round(s % 60)}秒`
     : `${Math.round(s * 10) / 10}秒`;
-const providers = { openai: "GPT", doubao: "豆包" };
+const providers = { openai: "ToAPIs / 兼容", doubao: "豆包直连" };
+const textModelPresets = [
+  { id: "claude-opus-5-5", name: "Claude Opus 5.5 · 默认" },
+  { id: "gpt-5.4-mini-official", name: "GPT Mini" },
+  { id: "deepseek-v4-flash", name: "DeepSeek Flash · 待验证" },
+  { id: "glm-5.3-flash", name: "智谱 GLM Flash" },
+  { id: "qwen3.5-flash", name: "通义千问 Flash" },
+];
+const imageModelPresets = [
+  { id: "gpt-image-2", name: "GPT Image 2 · 默认" },
+  { id: "qwen-image-3.0", name: "通义万相 3.0" },
+  { id: "qwen-image-3.0-pro", name: "通义万相 3.0 Pro" },
+  { id: "doubao-seedream-5-0", name: "即梦 Seedream 5.0" },
+];
+const textModelName = (model) =>
+  textModelPresets.find((preset) => preset.id === model)?.name || model || "模型";
 function App() {
   const [session, setSession] = useState(null),
     [password, setPassword] = useState(""),
@@ -60,6 +75,7 @@ function App() {
     [project, setProject] = useState(null),
     [settings, setSettings] = useState(null),
     [showSettings, setShowSettings] = useState(false),
+    [settingsSection, setSettingsSection] = useState("text"),
     [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [busy, setBusy] = useState(false),
@@ -78,6 +94,9 @@ function App() {
     [style, setStyle] = useState("写实影像，具体光色和氛围依剧本判断"),
     [aspect, setAspect] = useState("9:16");
   const upload = useRef();
+  const imageInProgress = Object.values(project?.imageTasks || {}).some((task) =>
+    ["queued", "in_progress"].includes(task.status),
+  );
   const notify = (s) => {
     setToast(s);
     setTimeout(() => setToast(""), 3200);
@@ -96,18 +115,46 @@ function App() {
     if (session?.authenticated) load().catch((e) => setError(e.message));
   }, [session]);
   useEffect(() => {
-    if (project?.status !== "running") return;
+    if (project?.status !== "running" && !imageInProgress) return;
     const id = setInterval(async () => {
       try {
         const p = await api("/projects/" + project.id);
         setProject(p);
-        if (p.status !== "running") load();
+        const stillGeneratingImage = Object.values(p.imageTasks || {}).some((task) =>
+          ["queued", "in_progress"].includes(task.status),
+        );
+        if (
+          imageInProgress &&
+          !stillGeneratingImage
+        ) notify("图片任务已结束，分镜已更新");
+        if (p.status !== "running" && !stillGeneratingImage) load();
       } catch (e) {
         setError(e.message);
       }
     }, 1800);
     return () => clearInterval(id);
-  }, [project?.id, project?.status]);
+  }, [project?.id, project?.status, imageInProgress]);
+  useEffect(() => {
+    if (!project?.id || !["failed", "cancelled", "interrupted"].includes(project.status) || boardDirty)
+      return;
+    const sync = async () => {
+      try {
+        const latest = await api("/projects/" + project.id);
+        if (latest.updatedAt !== project.updatedAt) {
+          setProject(latest);
+          await load();
+        }
+      } catch {
+        // Keep the current project visible while the local server is unavailable.
+      }
+    };
+    const id = setInterval(sync, 5000);
+    window.addEventListener("focus", sync);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", sync);
+    };
+  }, [project?.id, project?.status, project?.updatedAt, boardDirty]);
   async function act(fn) {
     setError("");
     setBusy(true);
@@ -138,6 +185,7 @@ function App() {
     e.preventDefault();
     if (!leaveBoard()) return;
     if (!settings?.[settings.provider]?.configured) {
+      setSettingsSection("text");
       setShowSettings(true);
       return;
     }
@@ -190,6 +238,13 @@ function App() {
     setProject(p);
     if (selected) setSelected(p.shots.find((s) => s.id === shot.id));
     await load();
+    return p;
+  }
+  async function generateShotImage(shot) {
+    const p = await post(`/projects/${project.id}/shots/${shot.id}/image`);
+    setProject(p);
+    await load();
+    notify("图片任务已提交，完成后自动保存");
     return p;
   }
   async function approve(s) {
@@ -264,10 +319,13 @@ function App() {
           </button>
           <button
             className="model-button"
-            onClick={() => setShowSettings(true)}
+            onClick={() => {
+              setSettingsSection("text");
+              setShowSettings(true);
+            }}
           >
             <Settings2 size={15} />
-            {providers[settings?.provider] || "模型"} ·{" "}
+            {textModelName(settings?.[settings?.provider]?.model)} ·{" "}
             {settings?.[settings?.provider]?.configured ? "已配置" : "待配置"}
           </button>
         </div>
@@ -435,7 +493,7 @@ function App() {
                     STORYBOARD /{" "}
                     {project.isExample
                       ? "示例 · 非实时模型生成"
-                      : providers[project.provider?.name] || "导演分镜"}
+                      : project.provider?.model || providers[project.provider?.name] || "导演分镜"}
                   </div>
                   <h3>{project.title}</h3>
                   <div className="project-sub">
@@ -491,7 +549,7 @@ function App() {
                   <LoaderCircle className="spin" size={22} />
                   <div>
                     <strong>{project.progress}</strong>
-                    <p>你可以离开页面，任务会在本地服务运行期间继续。</p>
+                    <p>正在生成文字分镜，图片不参与这一步。完成后可进入故事板；逐镜生图时仍可切换镜头。</p>
                   </div>
                   <button
                     className="secondary"
@@ -676,6 +734,12 @@ function App() {
                   onEdit={setSelected}
                   onCopy={copy}
                   onApprove={approve}
+                  imageConfigured={settings?.image?.configured}
+                  onGenerateImage={generateShotImage}
+                  onOpenImageSettings={() => {
+                    setSettingsSection("image");
+                    setShowSettings(true);
+                  }}
                   busy={busy}
                   onDirtyChange={setBoardDirty}
                 />
@@ -784,7 +848,11 @@ function App() {
                                 "approve-button",
                                 s.status === "approved" && "approved",
                               )}
-                              disabled={busy || project.status === "running"}
+                              disabled={
+                                busy ||
+                                (project.status === "running" &&
+                                  !project.completedScenes?.includes(s.sceneIndex))
+                              }
                               onClick={() => approve(s)}
                             >
                               <Check size={14} />
@@ -872,6 +940,7 @@ function App() {
       {showSettings && settings && (
         <Settings
           value={settings}
+          initialSection={settingsSection}
           onClose={() => setShowSettings(false)}
           onSave={(s) => {
             setSettings(s);
@@ -925,12 +994,19 @@ function Modal({ children, onClose, wide = false }) {
     </dialog>
   );
 }
-function Settings({ value, onClose, onSave }) {
+function Settings({ value, initialSection, onClose, onSave }) {
   const [form, setForm] = useState({
       provider: value.provider,
-      openai: { model: value.openai.model, key: "" },
-      doubao: { model: value.doubao.model, key: "" },
+      openai: { model: value.openai.model, baseUrl: value.openai.baseUrl, key: "" },
+      doubao: { model: value.doubao.model, baseUrl: value.doubao.baseUrl, key: "" },
+      image: {
+        model: value.image.model,
+        baseUrl: value.image.baseUrl,
+        useTextKey: value.image.useTextKey,
+        key: "",
+      },
     }),
+    [section, setSection] = useState(initialSection),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
@@ -947,6 +1023,7 @@ function Settings({ value, onClose, onSave }) {
         ...f,
         openai: { ...f.openai, key: "" },
         doubao: { ...f.doubao, key: "" },
+        image: { ...f.image, key: "" },
       }));
       setMessage("已保存。密钥不会返回浏览器。");
       return s;
@@ -982,11 +1059,16 @@ function Settings({ value, onClose, onSave }) {
         </button>
       </div>
       <p className="modal-description">
-        配置一次，创作时自动使用。新任务按当前模型运行。
+        文字模型负责拆镜与提示词；图片模型用于逐镜生图，可分别切换。
       </p>
+      <div className="settings-sections" role="tablist" aria-label="API 类型">
+        <button role="tab" aria-selected={section === "text"} className={section === "text" ? "active" : ""} onClick={() => setSection("text")}>文字 API</button>
+        <button role="tab" aria-selected={section === "image"} className={section === "image" ? "active" : ""} onClick={() => setSection("image")}>图片 API <span>{value.image.configured ? "已配置" : "待配置"}</span></button>
+      </div>
+      {section === "text" && <>
       <details className="rule-library">
         <summary>导演规则库 · Higgsfield Skills</summary>
-        <p>OSideMedia 社区版，已随项目保存；由下方选择的 GPT 或豆包执行。</p>
+        <p>OSideMedia 社区版，已随项目保存；由下方选择的文字模型执行。</p>
         <ul>
           <li>shotlist-director — 分镜与连续性</li>
           <li>acting — 人物目标、行为与反应</li>
@@ -1020,12 +1102,16 @@ function Settings({ value, onClose, onSave }) {
       </div>
       {["openai", "doubao"].map((n) => (
         <div key={n} hidden={form.provider !== n} className="provider-form">
+          {n === "openai" && <div className="model-preset-group">
+            <span>快捷选择文字模型</span>
+            <div className="model-presets">{textModelPresets.map(({ id, name }) => <button key={id} type="button" className={form[n].model === id ? "active" : ""} onClick={() => setForm({ ...form, [n]: { ...form[n], model: id } })}>{name}<small>{id}</small></button>)}</div>
+          </div>}
           <label>
             模型 ID
             <input
               placeholder={
                 n === "openai"
-                  ? "填写账户可用的 GPT 模型 ID"
+                  ? "填写 ToAPIs 上可用的文字模型 ID"
                   : "填写豆包模型 ID 或 ep-… 推理接入点"
               }
               value={form[n].model}
@@ -1048,15 +1134,78 @@ function Settings({ value, onClose, onSave }) {
               }
             />
           </label>
+          <label>
+            API Base URL
+            <input
+              value={form[n].baseUrl}
+              onChange={(e) => setForm({ ...form, [n]: { ...form[n], baseUrl: e.target.value } })}
+              placeholder={n === "openai" ? "https://toapis.cn/v1" : "https://ark.cn-beijing.volces.com/api/v3"}
+            />
+          </label>
           <p className="field-note">
             {value[n].envManaged
               ? "当前环境变量优先于页面配置。"
               : n === "openai"
-                ? "使用 OpenAI 官方 API；ChatGPT 会员不等于 API 额度。"
+                ? "使用 OpenAI 兼容接口；可填 ToAPIs 上其他支持 Chat Completions 和 JSON 的模型。DeepSeek Flash 已通过连接测试，完整分镜仍需验证。"
                 : "使用火山方舟官方 API（北京区域）。模型需要支持 JSON 输出。"}
           </p>
         </div>
       ))}
+      </>}
+      {section === "image" && (
+        <div className="provider-form image-provider-form">
+          <p className="field-note">支持 ToAPIs 的异步图片接口。选择模型后，在故事板里逐镜点击“生成图片”；不会自动批量生图。</p>
+          <div className="model-preset-group">
+            <span>快捷选择图片模型</span>
+            <div className="model-presets">{imageModelPresets.map(({ id, name }) => <button key={id} type="button" className={form.image.model === id ? "active" : ""} onClick={() => setForm({ ...form, image: { ...form.image, model: id } })}>{name}<small>{id}</small></button>)}</div>
+          </div>
+          <label>
+            图片模型 ID
+            <input
+              list="image-model-options"
+              value={form.image.model}
+              onChange={(e) => setForm({ ...form, image: { ...form.image, model: e.target.value } })}
+              placeholder="例如 gpt-image-2"
+            />
+            <datalist id="image-model-options">
+              <option value="gpt-image-2" />
+              <option value="gpt-image-2-official" />
+              <option value="qwen-image-3.0" />
+              <option value="qwen-image-3.0-pro" />
+              <option value="doubao-seedream-5-0" />
+            </datalist>
+          </label>
+          <label>
+            图片 API Base URL
+            <input
+              value={form.image.baseUrl}
+              onChange={(e) => setForm({ ...form, image: { ...form.image, baseUrl: e.target.value } })}
+              placeholder="https://toapis.cn/v1"
+            />
+          </label>
+          <label className="image-key-choice">
+            <input
+              type="checkbox"
+              checked={form.image.useTextKey}
+              onChange={(e) => setForm({ ...form, image: { ...form.image, useTextKey: e.target.checked } })}
+            />
+            复用 ToAPIs / 兼容文字 API 的密钥
+          </label>
+          {!form.image.useTextKey && (
+            <label>
+              图片 API Key
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={form.image.key}
+                placeholder={value.image.hasKey ? "已配置，留空保留现有密钥" : "仅保存至服务端"}
+                onChange={(e) => setForm({ ...form, image: { ...form.image, key: e.target.value } })}
+              />
+            </label>
+          )}
+          <p className="field-note">图片生成按所选模型计费。不同模型速度受平台排队、模型处理和图片复杂度影响；其他模型需支持 ToAPIs 图片任务接口。</p>
+        </div>
+      )}
       {error && (
         <div className="form-error" role="alert">
           {error}
@@ -1069,19 +1218,19 @@ function Settings({ value, onClose, onSave }) {
       )}
       <div className="settings-foot">
         <p>
-          测试连接会产生一次少量模型调用。
+          {section === "text" ? "测试连接会产生一次少量文字模型调用。" : "保存后可在故事板中按镜头生成图片。"}
           <br />
           使用 Higgsfield 社区 Skills，不调用其付费 API。
         </p>
         <div>
-          <button className="secondary" disabled={busy} onClick={test}>
+          {section === "text" && <button className="secondary" disabled={busy} onClick={test}>
             {busy ? (
               <LoaderCircle size={15} className="spin" />
             ) : (
               <Play size={14} />
             )}
             保存并测试
-          </button>
+          </button>}
           <button className="primary" disabled={busy} onClick={save}>
             保存配置
           </button>

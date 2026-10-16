@@ -48,6 +48,8 @@ export function recoverJobs() {
   }
 }
 const configFile = path.join(dataDir, "config.json");
+const defaultTextModel = "claude-opus-5-5";
+const defaultImageModel = "gpt-image-2";
 function stored() {
   try {
     return JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -57,11 +59,15 @@ function stored() {
 }
 export function config() {
   const s = stored();
+  const openaiKey = process.env.OPENAI_API_KEY || s.openai?.key || "";
+  const imageUsesTextKey = s.image?.useTextKey !== false;
   return {
     provider: s.provider || process.env.DEFAULT_PROVIDER || "openai",
     openai: {
-      key: process.env.OPENAI_API_KEY || s.openai?.key || "",
-      model: process.env.OPENAI_MODEL || s.openai?.model || "",
+      key: openaiKey,
+      model: process.env.OPENAI_MODEL || s.openai?.model || defaultTextModel,
+      baseUrl:
+        s.openai?.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
     doubao: {
       key:
@@ -70,6 +76,19 @@ export function config() {
         s.doubao?.key ||
         "",
       model: process.env.DOUBAO_MODEL || s.doubao?.model || "",
+      baseUrl:
+        s.doubao?.baseUrl ||
+        process.env.DOUBAO_BASE_URL ||
+        "https://ark.cn-beijing.volces.com/api/v3",
+    },
+    image: {
+      model: s.image?.model || process.env.IMAGE_MODEL || defaultImageModel,
+      baseUrl:
+        s.image?.baseUrl || process.env.IMAGE_BASE_URL || "https://toapis.cn/v1",
+      useTextKey: imageUsesTextKey,
+      key:
+        process.env.IMAGE_API_KEY ||
+        (imageUsesTextKey ? openaiKey : s.image?.key || ""),
     },
   };
 }
@@ -82,6 +101,7 @@ export function publicConfig() {
         n,
         {
           model: c[n].model,
+          baseUrl: c[n].baseUrl,
           configured: !!(c[n].key && c[n].model),
           hasKey: !!c[n].key,
           envManaged: !!(n === "openai"
@@ -90,6 +110,14 @@ export function publicConfig() {
         },
       ]),
     ),
+    image: {
+      model: c.image.model,
+      baseUrl: c.image.baseUrl,
+      useTextKey: c.image.useTextKey,
+      configured: !!(c.image.key && c.image.model),
+      hasKey: !!c.image.key,
+      envManaged: !!process.env.IMAGE_API_KEY,
+    },
   };
 }
 export function saveConfig(input) {
@@ -98,8 +126,17 @@ export function saveConfig(input) {
   for (const n of ["openai", "doubao"]) {
     s[n] ||= {};
     s[n].model = input[n].model.trim();
+    if (input[n].baseUrl) s[n].baseUrl = input[n].baseUrl.trim().replace(/\/$/, "");
     if (input[n].key?.trim()) s[n].key = input[n].key.trim();
     if (input[n].clearKey) s[n].key = "";
+  }
+  if (input.image) {
+    s.image ||= {};
+    s.image.model = input.image.model.trim();
+    s.image.baseUrl = input.image.baseUrl.trim().replace(/\/$/, "");
+    s.image.useTextKey = input.image.useTextKey;
+    if (input.image.key?.trim()) s.image.key = input.image.key.trim();
+    if (input.image.clearKey) s.image.key = "";
   }
   fs.writeFileSync(configFile, JSON.stringify(s, null, 2), { mode: 0o600 });
   return publicConfig();
