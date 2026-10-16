@@ -2,6 +2,8 @@
 
 **你的 AI 分镜师。**
 
+**程序员接手先看：[交接入口与上线清单](docs/PROGRAMMER-BRIEF.md)** · [当前 UI 交接](docs/SHOT-MATE-HANDOFF.md) · [技术部署说明](docs/HANDOFF.md)
+
 将剧本交给 GPT 或豆包，自动串联 Higgsfield 创作 Skills，输出可逐镜审核的分镜表。网站独立运行，不依赖 Codex / ChatGPT 会话，不调用 Higgsfield 付费 API，也不生成视频。
 
 品牌与 UI 规范位于 `/brand/`，包含透明 Logo 下载、配色与排版说明。实现与素材说明见 [Shot Mate 设计系统](docs/BRAND-SYSTEM.md)。

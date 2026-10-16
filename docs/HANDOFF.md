@@ -1,6 +1,8 @@
-# 程序员交接 · 2026-10-14
+# 技术交接 · Shot Mate
 
-产品最新约定：主界面为「左侧剧本、右侧故事板/表格」两个窗口。已按 A 视觉 + B 机位图 + D 故事板实现，见 [UI-STORYBOARD.md](UI-STORYBOARD.md)。常规操作为粘贴 → 生成 → 审核/导出。更多选项默认折叠，不增加目标时长输入。简明交接见 [PROGRAMMER-BRIEF.md](PROGRAMMER-BRIEF.md)。
+2026-10-16 更新：当前品牌与界面以 [程序员接手入口](PROGRAMMER-BRIEF.md) 和 [Shot Mate UI 交接](SHOT-MATE-HANDOFF.md) 为准。以下保留技术部署说明。
+
+产品最新约定：主界面为「左侧剧本、右侧故事板/表格」两个窗口。当前为钴蓝 Shot Mate 视觉，保留机位图与故事板；[UI-STORYBOARD.md](UI-STORYBOARD.md) 记录早期功能实现。常规操作为粘贴 → 生成 → 审核/导出。更多选项默认折叠，不增加目标时长输入。简明交接见 [PROGRAMMER-BRIEF.md](PROGRAMMER-BRIEF.md)。
 
 ## 明天优先做
 
@@ -46,4 +48,4 @@ docker compose up -d --build
 - 时长是创作估计，无 TTS / 实拍测量，不支持完整跨镜声音时间线。
 - 长剧本、复杂对白格式和精确原文行动覆盖仍需人工复核；原文行号存在不证明语义全部被拍到。
 - 本次没有真实模型验收，不承诺影视质量/成功率/延时。
-- npm audit 当前有 3 项 moderate，来自 mammoth 的 CLI 依赖 argparse → sprintf-js 格式串 DoS；本项目调用 extractRawText，未使用该 CLI 格式化入口。不要强制降级 mammoth 到旧版；上线前复查上游修复并评估 DOCX 隔离/限流。
+- 2026-10-14 的 npm audit 曾记录 3 项 moderate（历史结果，不代表当前版本的复查结果），来自 mammoth 的 CLI 依赖 argparse → sprintf-js 格式串 DoS；本项目调用 extractRawText，未使用该 CLI 格式化入口。不要强制降级 mammoth 到旧版；上线前复查上游修复并评估 DOCX 隔离/限流。
