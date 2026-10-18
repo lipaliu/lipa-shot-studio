@@ -20,7 +20,8 @@ export const blankBlocking = () => ({
   note: "手动机位草图；相对位置，非实测尺寸。",
 });
 const clamp = (n) => Math.min(95, Math.max(5, Math.round(n)));
-const colors = ["#e6ff42", "#7fc8ff", "#ff8d86", "#92e6bd"];
+// Spike-tape colours: one roll per character, as marked on a sound-stage floor.
+const colors = ["#ff3d8b", "#4c8dff", "#b48cff", "#f3f3ee"];
 
 // A deliberately schematic composition. Uploaded art always takes precedence.
 export function StoryFrame({ shot, aspect = "16:9", small = false }) {
@@ -65,18 +66,18 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
           height="40"
           patternUnits="userSpaceOnUse"
         >
-          <path d="M40 0H0V40" fill="none" stroke="#283855" strokeWidth="1" />
+          <path d="M40 0H0V40" fill="none" stroke="#2f2f2b" strokeWidth="1" />
         </pattern>
         <clipPath id={`clip-${id}`}>
           <rect width={W} height={H} rx="4" />
         </clipPath>
       </defs>
       <g clipPath={`url(#clip-${id})`}>
-        <rect width={W} height={H} fill="#111b38" />
+        <rect width={W} height={H} fill="#232320" />
         <rect width={W} height={H} fill={`url(#grid-${id})`} />
         <path
           d={`M0 ${H * 0.68}H${W}M${W / 3} 0V${H}M${(W * 2) / 3} 0V${H}`}
-          stroke="#6a6658"
+          stroke="#8f8f87"
           strokeDasharray="4 8"
           opacity=".45"
         />
@@ -101,7 +102,7 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
                 opacity=".45"
               />
               {!small && (
-                <text y="-48" textAnchor="middle" fill="#f2eee4" fontSize="17">
+                <text y="-48" textAnchor="middle" fill="#f3f3ee" fontSize="17">
                   {a.name}
                 </text>
               )}
@@ -112,7 +113,7 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
           <text
             x={W / 2}
             y={H / 2}
-            fill="#bdb8aa"
+            fill="#a9a9a0"
             fontSize="22"
             textAnchor="middle"
           >
@@ -124,16 +125,16 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
           y={H - 36}
           width={W}
           height="36"
-          fill="#0c1429"
+          fill="#121211"
           opacity=".95"
         />
-        <text x="18" y={H - 12} fill="#ddd4c2" fontSize="15">
+        <text x="18" y={H - 12} fill="#e2e2db" fontSize="15">
           {small ? shot.id : "构图示意 · 非生成画面"}
         </text>
         <text
           x={W - 18}
           y={H - 12}
-          fill="#ddd4c2"
+          fill="#e2e2db"
           fontSize="15"
           textAnchor="end"
         >
@@ -256,7 +257,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             height="20"
             patternUnits="userSpaceOnUse"
           >
-            <path d="M30 0H0V20" fill="none" stroke="#283855" />
+            <path d="M30 0H0V20" fill="none" stroke="#1c1c1a" strokeOpacity=".1" />
           </pattern>
           <marker
             id={`arrow-${id}`}
@@ -266,10 +267,20 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             refY="3.5"
             orient="auto"
           >
-            <path d="M0 0L7 3.5L0 7" fill="#e6ff42" />
+            <path d="M0 0L7 3.5L0 7" fill="#1c1c1a" />
           </marker>
         </defs>
-        <rect width="600" height="400" rx="10" fill="#111b38" />
+        <rect width="600" height="400" rx="10" fill="#c9c9c2" />
+        <rect
+          x="18"
+          y="12"
+          width="564"
+          height="376"
+          rx="8"
+          fill="#d5d5cf"
+          stroke="#1c1c1a"
+          strokeWidth="2"
+        />
         <rect
           x="18"
           y="12"
@@ -277,8 +288,6 @@ export function FloorPlan({ value, onChange, readonly = false }) {
           height="376"
           rx="8"
           fill={`url(#plan-${id})`}
-          stroke="#73796c"
-          strokeWidth="3"
         />
         {value.props.map((p, i) => (
           <g key={i} {...handle(`prop-${i}`, `移动道具 ${p.name}`, p)}>
@@ -288,14 +297,15 @@ export function FloorPlan({ value, onChange, readonly = false }) {
               width={p.width * 6}
               height={p.height * 4}
               rx="5"
-              fill="#4c4a3c"
-              stroke="#92917d"
+              fill="#c2c2bb"
+              stroke="#1c1c1a"
+              strokeWidth="2"
             />
             <text
               x={p.x * 6}
               y={(p.y - p.height / 2) * 4 - 10}
               textAnchor="middle"
-              fill="#e1dccb"
+              fill="#1c1c1a"
               fontSize="16"
             >
               {p.name}
@@ -308,7 +318,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             y1={a[0].y * 4}
             x2={a[1].x * 6}
             y2={a[1].y * 4}
-            stroke="#b48d9b"
+            stroke="#1c1c1a"
             strokeDasharray="8 6"
             strokeWidth="2"
           />
@@ -318,7 +328,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
           y1={c.y * 4}
           x2={c.targetX * 6}
           y2={c.targetY * 4}
-          stroke="#e6ff42"
+          stroke="#1c1c1a"
           strokeWidth="2"
           markerEnd={`url(#arrow-${id})`}
         />
@@ -329,41 +339,48 @@ export function FloorPlan({ value, onChange, readonly = false }) {
             cx={c.targetX * 6}
             cy={c.targetY * 4}
             r="13"
-            fill="#172746"
-            stroke="#e6ff42"
+            fill="#d5d5cf"
+            stroke="#1c1c1a"
             strokeDasharray="3 3"
           />
           <path
             d={`M${c.targetX * 6 - 6} ${c.targetY * 4}h12M${c.targetX * 6} ${c.targetY * 4 - 6}v12`}
-            stroke="#e6ff42"
+            stroke="#1c1c1a"
           />
         </g>
         {a.map((p, i) => (
           <g key={i} {...handle(`actor-${i}`, `移动人物 ${p.name}`, p)}>
-            <circle
-              cx={p.x * 6}
-              cy={p.y * 4}
-              r="20"
+            <circle cx={p.x * 6} cy={p.y * 4} r="24" fill="#d5d5cf" fillOpacity="0" />
+            <rect
+              x={p.x * 6 - 19}
+              y={p.y * 4 - 16}
+              width="38"
+              height="10"
               fill={colors[i % colors.length]}
-              stroke="#101a32"
-              strokeWidth="3"
+            />
+            <rect
+              x={p.x * 6 - 5}
+              y={p.y * 4 - 6}
+              width="10"
+              height="24"
+              fill={colors[i % colors.length]}
             />
             <text
-              x={p.x * 6}
-              y={p.y * 4 + 5}
-              textAnchor="middle"
-              fill="#172746"
-              fontSize="15"
-              fontWeight="700"
+              x={p.x * 6 + 16}
+              y={p.y * 4 - 20}
+              fill="#1c1c1a"
+              fontSize="17"
+              className="tape-marker"
             >
               {i + 1}
             </text>
             <text
               x={p.x * 6}
-              y={p.y * 4 + 39}
+              y={p.y * 4 + 40}
               textAnchor="middle"
-              fill="#f1ecdf"
-              fontSize="17"
+              fill="#1c1c1a"
+              fontSize="16"
+              fontWeight="600"
             >
               {p.name}
             </text>
@@ -376,44 +393,44 @@ export function FloorPlan({ value, onChange, readonly = false }) {
               y="-12"
               width="25"
               height="24"
-              rx="4"
-              fill="#e6ff42"
+              rx="3"
+              fill="#1c1c1a"
             />
-            <path d="M12 -9L24 -15V15L12 9Z" fill="#e6ff42" />
+            <path d="M12 -9L24 -15V15L12 9Z" fill="#1c1c1a" />
           </g>
           <text
             x={c.x * 6}
             y={c.y * 4 + 33}
-            fill="#f1ecdf"
-            fontSize="16"
+            fill="#1c1c1a"
+            fontSize="15"
             textAnchor="middle"
+            className="tape-marker"
           >
-            机位
+            CAM
           </text>
         </g>
         <g {...handle("light", "移动主光", value.light)}>
-          <circle
-            cx={value.light.x * 6}
-            cy={value.light.y * 4}
-            r="16"
-            fill="#dccd91"
-          />
+          <circle cx={value.light.x * 6} cy={value.light.y * 4} r="20" fill="#d5d5cf" fillOpacity="0" />
+          <g transform={`translate(${value.light.x * 6} ${value.light.y * 4})`}>
+            <rect x="-18" y="-5" width="36" height="10" fill="#ffd400" transform="rotate(45)" />
+            <rect x="-18" y="-5" width="36" height="10" fill="#ffd400" transform="rotate(-45)" />
+          </g>
           <text
             x={value.light.x * 6}
-            y={value.light.y * 4 + 5}
-            fill="#26261a"
+            y={value.light.y * 4 + 38}
+            fill="#1c1c1a"
             textAnchor="middle"
-            fontSize="14"
+            fontSize="15"
+            fontWeight="600"
           >
-            光
+            主光
           </text>
         </g>
       </svg>
       <div className="plan-legend">
-        <span>
-          <i />
-          相机与朝向
-        </span>
+        <span>T 形胶带：人物（一人一色）</span>
+        <span>黑色机身：机位与朝向</span>
+        <span>黄色 X：主光</span>
         <span>虚线：前两位人物轴线</span>
         <span>相对位置 · 非实测</span>
       </div>

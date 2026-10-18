@@ -40,7 +40,7 @@ npm start
 
 ## 导演规则来源
 
-界面已按用户选择更新为 Shot Mate 钴蓝工作台，暖白剧本区与深蓝分镜区并排：故事板、俯视机位图与完整分镜表相互配合。支持逐镜上传分镜图和调整站位；未上传时显示构图示意，不含自动生图服务。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
+界面已更新为「走位胶带」视觉（2026-10-18，分支 design/spike-tape）：水泥灰页面、粉笔白剧本区与胶带黑分镜区并排，品牌色和字体见 docs/BRAND-SYSTEM.md：故事板、俯视机位图与完整分镜表相互配合。支持逐镜上传分镜图和调整站位；未上传时显示构图示意，不含自动生图服务。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
 
 主创作规则来自 OSideMedia 的 Higgsfield 社区 Skills：shotlist-director、acting、camera、style、audio。原文快照位于 [vendor/higgsfield](vendor/higgsfield)，许可为 MIT。实际选段、版本和 SHA-256 记录在 manifest，后台直接读取选段传给模型。不是只写一个“你是导演”的提示词，也不是 Higgsfield 官方接口。
 

@@ -1,6 +1,40 @@
-# Shot Mate 品牌系统
+# Shot Mate 品牌系统 · 走位胶带（Spike Tape）
 
-当前以 docs/SHOT-MATE-HANDOFF.md 和 public/brand/index.html 为准。
-用户已选择：Shot Mate 名称；Boords 参考的扁宽字形与上下切边；钴蓝、朱红、酸柠黄和暖白配色；透明 Logo，不带中文副标。
-本轮实现后的具体字形与页面仍待用户视觉评审，不把测试通过视为审美通过。此前小绘、分镜牛马和 Storyboard Cowboy 为历史探索，不再是产品当前名称。
-字体：系统无衬线，中文 PingFang SC / Microsoft YaHei。字标是生成的透明 PNG，不复用 Boords 的字标或商标资产。
+2026-10-18 起生效，替代此前的钴蓝方向（历史方向：钴蓝片场、小绘、分镜牛马）。在线规范页：`/brand/`。
+
+## 概念
+片场地面用彩色胶带标记演员站位、机位与灯位。Shot Mate 把这套现场语言用到界面：水泥灰＝地面，粉笔白＝剧本纸，胶带黑＝分镜工作区。
+
+## 颜色（唯一来源：`public/brand/tokens.css`）
+| 名称 | 值 | 用途 |
+| --- | --- | --- |
+| 水泥灰 `--concrete` | #D5D5CF | 页面底、机位图地面 |
+| 胶带黑 `--gaffer` | #1C1C1A | 分镜工作区、文字、字标胶带 |
+| 粉笔白 `--chalk` | #F3F3EE | 剧本区、深色上的文字 |
+| 荧光粉 `--tape-pink` | #FF3D8B | 品牌信号、主操作、角色 1 |
+| 蓝 `--tape-blue` | #4C8DFF | 角色 2 |
+| 紫 `--tape-purple` | #B48CFF | 角色 3 |
+| 黄 `--tape-yellow` | #FFD400 | 主光、提醒 |
+| 绿 `--tape-green` | #2FCB6E | 已通过 |
+| 橙 `--tape-orange` | #FF7A1A | 待修改 |
+
+规则：彩色胶带上的字一律胶带黑；荧光色不当浅底文字色；状态必须有文字，颜色只是第二信号。深色区辅助文字 `--muted` #A9A9A0（7:1），剧本区辅助文字 #55554F（6.9:1）。
+
+## 标志
+- 字标：模板字 `SHOT MATE` 印在一段撕边胶带黑上（CSS 实现，`.tape-logo`，见 `src/main.jsx` Logo）。
+- 符号 / App 图标：粉色 T 形走位标记，`public/shotmate/favicon.svg`。
+- 不加中文副标。旧 `wordmark.png` 为钴蓝方向遗留，不再使用。
+
+## 字体（自托管于 `public/fonts`，许可见 `licenses/FONT-*`）
+- Big Shoulders Stencil：字标。Big Shoulders：镜号大数字、统计数字。
+- IBM Plex Mono：镜号 S01-001、行号、秒数、计数。
+- Permanent Marker：只写在胶带上、只用拉丁字母（CAM / 人物编号）。
+- 中文：系统黑体栈 `--font-cjk`。
+
+## 界面元素
+- 主操作：荧光粉撕边胶带按钮（生成分镜、查看示例、通过此镜、视图切换选中）。
+- 状态标签：胶带形（待审核＝粉笔白，已通过＝绿，待修改＝橙）。
+- 机位图：水泥地面 + 网格；人物＝T 形胶带（一人一色）+ 马克笔编号；机位＝黑色机身 + CAM；主光＝黄色 X；轴线＝黑色虚线。
+- 构图示意帧：深色底，人物颜色与机位图一致。
+
+视觉仍待项目所有者在真实页面上评审。

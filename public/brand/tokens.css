@@ -1,18 +1,52 @@
-/* Shot Mate — cobalt studio palette. */
+/* Shot Mate — 走位胶带 Spike Tape. One source for brand values. */
+@font-face { font-family: "Big Shoulders"; src: url("/fonts/big-shoulders-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Big Shoulders Stencil"; src: url("/fonts/big-shoulders-stencil-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Permanent Marker"; src: url("/fonts/permanent-marker-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 :root {
-  --brand: #2145ff;
-  --coral: #ff563b;
-  --canvas: #2145ff;
-  --paper: #111b38;
-  --raised: #1e2c4d;
-  --line: #334365;
-  --text: #f7f5ee;
-  --muted: #b5c2dc;
-  --accent: #e6ff42;
-  --accent-hover: #efff83;
-  --accent-pressed: #d6ef30;
-  --success: #a6eac7;
-  --warning: #f4daaa;
-  --danger: #ffbdaf;
-  --radius-control: 8px;
+  /* Brand rolls */
+  --concrete: #d5d5cf;      /* 水泥灰：页面底（片场地面） */
+  --concrete-deep: #c9c9c2; /* 地面暗部、分区 */
+  --gaffer: #1c1c1a;        /* 胶带黑：工作区、文字、字标胶带 */
+  --chalk: #f3f3ee;         /* 粉笔白：剧本纸、深色上的文字 */
+  --tape-pink: #ff3d8b;     /* 荧光粉：品牌信号、主操作、角色 1 */
+  --tape-blue: #4c8dff;     /* 角色 2 */
+  --tape-purple: #b48cff;   /* 角色 3 */
+  --tape-yellow: #ffd400;   /* 主光 / 灯位、提醒 */
+  --tape-green: #2fcb6e;    /* 已通过 */
+  --tape-orange: #ff7a1a;   /* 待修改 */
+
+  /* Workspace (gaffer zone) semantic tokens used by cinema.css */
+  --brand: var(--tape-pink);
+  --canvas: var(--concrete);
+  --paper: var(--gaffer);
+  --raised: #2a2a27;
+  --line: #3e3e3a;
+  --text: var(--chalk);
+  --muted: #a9a9a0;         /* 7:1 on gaffer */
+  --accent: var(--tape-pink);
+  --accent-hover: #ff66a5;
+  --accent-pressed: #e82e78;
+  --on-accent: var(--gaffer);
+  --success: var(--tape-green);
+  --warning: var(--tape-yellow);
+  --danger: #ff9a55;
+  --radius-control: 4px;
+
+  /* Script zone (chalk paper) */
+  --script-ink: var(--gaffer);
+  --script-muted: #55554f;  /* 6.9:1 on chalk */
+  --script-line: #cfcfc8;
+
+  /* Type */
+  --font-cjk: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-display: "Big Shoulders", "Arial Narrow", var(--font-cjk);
+  --font-stencil: "Big Shoulders Stencil", "Big Shoulders", "Arial Narrow", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-marker: "Permanent Marker", "Comic Sans MS", cursive;
+
+  /* Torn tape ends */
+  --tape-cut: polygon(1.5% 0, 98.5% 0, 100% 22%, 98.8% 45%, 100% 68%, 98.6% 100%, 1.2% 100%, 0 76%, 1.4% 52%, 0 28%);
 }
