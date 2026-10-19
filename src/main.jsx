@@ -402,11 +402,7 @@ function App() {
             <span>TXT / Word / Markdown</span>
             <span>{script.length.toLocaleString()} / 30,000</span>
           </div>
-          <details className="optional-settings">
-            <summary>
-              更多选项 <span>画幅、画风</span>
-              <ChevronDown size={14} />
-            </summary>
+          <section className="optional-settings" aria-label="创作设置">
             <div>
               <label>
                 剧本名称
@@ -441,7 +437,7 @@ function App() {
                 />
               </label>
             </div>
-          </details>
+          </section>
           <div className="generate-area">
             <button
               className="primary"

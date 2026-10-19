@@ -12,4 +12,6 @@
 
 截图：`docs/screenshots/spike-integrated-empty.jpg`、`docs/screenshots/spike-integrated-plan.jpg`。
 
-本次仅本地整合，未推送整合分支，也未部署公网；两个原远端分支均未修改。
+已按用户确认同步到 GitHub 的 `codex/spike-tape-integration` 分支；原 `codex/initial-delivery` 与 `design/spike-tape` 分支未修改。未部署公网。
+
+追加交互调整：剧本名称、画幅、画风直接显示在输入区，移除“更多选项”折叠入口，原设置值和提交逻辑保留。

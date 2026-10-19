@@ -224,18 +224,6 @@ a {
 .optional-settings {
   border-top: 1px solid var(--line);
 }
-.optional-settings summary {
-  padding: 15px 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-.optional-settings summary span {
-  margin-left: auto;
-  color: var(--muted);
-  font-size: 13px;
-}
 .optional-settings > div {
   padding: 0 20px 20px;
   display: grid;
