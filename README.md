@@ -40,7 +40,7 @@ npm start
 
 ## 导演规则来源
 
-界面已按用户选择更新为 Shot Mate 钴蓝工作台，暖白剧本区与深蓝分镜区并排：故事板、俯视机位图与完整分镜表相互配合。支持逐镜上传分镜图和调整站位；没有图片时显示构图示意。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
+界面采用「走位胶带」视觉：水泥灰页面、粉笔白剧本区与胶带黑分镜区并排。默认先生成分镜表，再逐镜按需规划机位；拖动后自动同步摄影文字与提示词。品牌规范见 [BRAND-SYSTEM.md](docs/BRAND-SYSTEM.md)。支持逐镜上传分镜图和调整站位；没有图片时显示构图示意。详见 [故事板改版与验证说明](docs/UI-STORYBOARD.md)。
 
 ## 图片 API
 
@@ -51,6 +51,7 @@ npm start
 文字分镜的所有场次完成后才能进入故事板；图片是可选的异步任务，不影响切换到下一镜查看文字。当前后台一次只运行一个图片生成任务，需等前一张完成才能提交下一张。
 
 CSV 交付文字分镜和提示词；完整 JSON 包含生成图片的本地地址。图片文件保存在运行此服务的机器上，导出 JSON 不会打包图片文件。
+
 
 主创作规则来自 OSideMedia 的 Higgsfield 社区 Skills：shotlist-director、acting、camera、style、audio。原文快照位于 [vendor/higgsfield](vendor/higgsfield)，许可为 MIT。实际选段、版本和 SHA-256 记录在 manifest，后台直接读取选段传给模型。不是只写一个“你是导演”的提示词，也不是 Higgsfield 官方接口。
 

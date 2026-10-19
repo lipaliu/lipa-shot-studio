@@ -350,7 +350,7 @@ function App() {
       <section className="studio-intro" aria-label="Shot Mate 分镜工作台">
         <div>
           <p className="studio-eyebrow">从文字，到镜头。</p>
-          <h1>把故事，<br className="intro-break" />画进下一镜<span>。</span></h1>
+          <h1>把故事，<br className="intro-break" />画进<mark className="tape-hl">下一镜</mark>。</h1>
           <p className="studio-description">你来讲故事，Shot Mate 帮你安排画面、表演与声音。</p>
         </div>
         <ol className="workflow-steps" aria-label="创作流程">
@@ -991,7 +991,10 @@ function App() {
 function Logo() {
   return (
     <a className="logo" href="#workspace" aria-label="Shot Mate · 分镜工作台">
-      <span className="shotmate-wordmark"><img src="/shotmate/wordmark.png" alt="Shot Mate" width="2172" height="724" /></span>
+      <span className="tape-logo">
+        <span className="tape-t" aria-hidden="true"><i /><i /></span>
+        <span className="tape-strip">SHOT MATE</span>
+      </span>
     </a>
   );
 }
