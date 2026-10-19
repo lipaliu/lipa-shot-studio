@@ -391,7 +391,7 @@ export function compilePrompt(shot, project) {
   const plan = shot.blocking
     ? "\n【机位草图】相对平面坐标，非米制尺寸；" +
       JSON.stringify(shot.blocking) +
-      "；与摄影文字相互核对，如冲突需人工确认。"
+      "；空间位置和朝向以此最新草图及【机位同步】文字为准，保留原镜头的动作与运镜意图。"
     : "";
   return `【画面规格】${project.aspect}；成片镜头预计 ${t.seconds} 秒（估算，非生成平台时长参数）。\n【主体与动作】${shot.description}\n【人物表演】${shot.performance}\n【摄影】${shot.framing}；${shot.camera}\n【空间与正反打】${shot.coverage}\n【画风与美术】${project.style}；${project.outline?.look || ""}；${shot.style}；${shot.artDirection}\n【光线】${shot.lighting}\n【对白】${shot.dialogue.length ? shot.dialogue.map((d) => `${d.speaker}：“${d.text}”`).join("\n") : "无对白"}\n【声音】环境：${shot.ambience}；音效：${shot.sfx}；配乐：${shot.music}\n【衔接】起始：${shot.continuityIn}；结束：${shot.continuityOut}\n【连续性要求】人物身份、服装、道具归属和光源方向随剧情连续；保持所述视线与动作方向。${plan}`;
 }

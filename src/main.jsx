@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import "./cinema.css";
 import "./shotmate.css";
+import { ShotPlan } from "./shot-plan.jsx";
 import { Storyboard } from "./storyboard.jsx";
 async function api(url, options = {}) {
   const r = await fetch("/api" + url, {
@@ -83,10 +84,11 @@ function App() {
     [selected, setSelected] = useState(null),
     [filter, setFilter] = useState("all"),
     [sceneFilter, setSceneFilter] = useState("all"),
-    [view, setView] = useState("board"),
+    [view, setView] = useState("table"),
+    [planShotId, setPlanShotId] = useState(null),
     [boardDirty, setBoardDirty] = useState(false);
   const leaveBoard = () => {
-    if (boardDirty) notify("请先保存镜头，或在故事板中撤销修改。");
+    if (boardDirty) notify("机位正在同步，请稍候；失败时可重试或撤销未保存的调整。");
     return !boardDirty;
   };
   const [title, setTitle] = useState(""),
@@ -171,6 +173,8 @@ function App() {
     await act(async () => {
       const p = await api("/projects/" + id);
       setProject(p);
+      setView("table");
+      setPlanShotId(null);
       setScript(p.script);
       setTitle(p.title);
       setStyle(p.style);
@@ -197,6 +201,8 @@ function App() {
         aspect,
       });
       setProject(p);
+      setView("table");
+      setPlanShotId(null);
       setSelected(null);
       setFilter("all");
       setSceneFilter("all");
@@ -221,6 +227,8 @@ function App() {
     await act(async () => {
       const p = await post("/example");
       setProject(p);
+      setView("table");
+      setPlanShotId(null);
       setScript(p.script);
       setTitle(p.title);
       setStyle(p.style);
@@ -348,7 +356,7 @@ function App() {
         <ol className="workflow-steps" aria-label="创作流程">
           <li><span>01</span><div><strong>放入剧本</strong><small>粘贴文字，或导入文件</small></div></li>
           <li><span>02</span><div><strong>拆解镜头</strong><small>自动估时，保留原对白</small></div></li>
-          <li><span>03</span><div><strong>逐镜定稿</strong><small>审阅故事板，导出分镜表</small></div></li>
+          <li><span>03</span><div><strong>逐镜定稿</strong><small>先审分镜表，按需调机位</small></div></li>
         </ol>
       </section>
       <main className="two-windows" id="workspace">
@@ -674,15 +682,6 @@ function App() {
               <div className="table-toolbar">
                 <div className="view-switch" aria-label="分镜视图">
                   <button
-                    aria-pressed={view === "board"}
-                    onClick={() => {
-                      if (leaveBoard()) setView("board");
-                    }}
-                  >
-                    <Film size={15} />
-                    故事板
-                  </button>
-                  <button
                     aria-pressed={view === "table"}
                     onClick={() => {
                       if (leaveBoard()) setView("table");
@@ -690,6 +689,15 @@ function App() {
                   >
                     <FileText size={15} />
                     分镜表
+                  </button>
+                  <button
+                    aria-pressed={view === "board"}
+                    onClick={() => {
+                      if (leaveBoard()) { setPlanShotId(null); setView("board"); }
+                    }}
+                  >
+                    <Film size={15} />
+                    故事板
                   </button>
                 </div>
                 <div className="tabs">
@@ -703,7 +711,7 @@ function App() {
                       className={filter === v ? "active" : ""}
                       key={v}
                       onClick={() => {
-                        if (leaveBoard()) setFilter(v);
+                        if (leaveBoard()) { setPlanShotId(null); setFilter(v); }
                       }}
                     >
                       {l}
@@ -714,7 +722,7 @@ function App() {
                   aria-label="筛选场次"
                   value={sceneFilter}
                   onChange={(e) => {
-                    if (leaveBoard()) setSceneFilter(e.target.value);
+                    if (leaveBoard()) { setPlanShotId(null); setSceneFilter(e.target.value); }
                   }}
                 >
                   <option value="all">全部场次</option>
@@ -744,6 +752,14 @@ function App() {
                   onDirtyChange={setBoardDirty}
                 />
               ) : (
+                <>
+                {planShotId && filtered.some(s => s.id === planShotId) && <ShotPlan
+                  key={`${project.id}-${planShotId}`}
+                  shot={project.shots.find(s => s.id === planShotId)} project={project}
+                  onSave={updateShot} onDirtyChange={setBoardDirty}
+                  onClose={() => setPlanShotId(null)}
+                  onGenerate={async shot => (await post(`/projects/${project.id}/shots/${shot.id}/blocking`)).blocking}
+                />}
                 <div className="table-wrap">
                   <table>
                     <thead>
@@ -763,7 +779,7 @@ function App() {
                           <td className="sticky-col">
                             <button
                               className="shot-id"
-                              onClick={() => setSelected(s)}
+                              onClick={() => { if (leaveBoard()) setSelected(s); }}
                             >
                               {s.id}
                               <ArrowUpRight size={13} />
@@ -800,6 +816,13 @@ function App() {
                             <p>{s.camera}</p>
                             <div className="cell-label">正反打 / 轴线</div>
                             <p>{s.coverage}</p>
+                            <button className="secondary compact plan-entry"
+                              aria-label={`${s.id} ${s.blocking ? "调整机位图" : "生成机位图"}`}
+                              aria-expanded={planShotId === s.id}
+                              disabled={project.status === "running"}
+                              onClick={() => { if (leaveBoard()) setPlanShotId(planShotId === s.id ? null : s.id); }}>
+                              {s.blocking ? "调整机位图" : "生成机位图"}
+                            </button>
                           </td>
                           <td>
                             <p>{s.lighting}</p>
@@ -838,7 +861,7 @@ function App() {
                             <button
                               className="text-button edit-button"
                               disabled={project.status === "running"}
-                              onClick={() => setSelected(s)}
+                              onClick={() => { if (leaveBoard()) setSelected(s); }}
                             >
                               展开 / 修改
                               <ChevronRight size={14} />
@@ -849,7 +872,7 @@ function App() {
                                 s.status === "approved" && "approved",
                               )}
                               disabled={
-                                busy ||
+                                busy || boardDirty ||
                                 (project.status === "running" &&
                                   !project.completedScenes?.includes(s.sceneIndex))
                               }
@@ -874,12 +897,13 @@ function App() {
                     </div>
                   )}
                 </div>
+                </>
               )}
               <div className="table-foot">
                 <span>
                   {view === "board"
                     ? "按镜头顺序审核；机位、图片可单独保存。"
-                    : "点击镜号，查看估时依据与完整提示词。"}
+                    : "先审分镜表，需要时逐镜调整机位；停下后自动同步。"}
                 </span>
                 <span>
                   {project.isExample ? "预先编写的演示内容" : "已保存到服务端"}{" "}
@@ -1144,7 +1168,7 @@ function Settings({ value, initialSection, onClose, onSave }) {
           </label>
           <p className="field-note">
             {value[n].envManaged
-              ? "当前环境变量优先于页面配置。"
+              ? "密钥由环境变量提供；模型与接口地址按当前设置保存。"
               : n === "openai"
                 ? "使用 OpenAI 兼容接口；可填 ToAPIs 上其他支持 Chat Completions 和 JSON 的模型。DeepSeek Flash 已通过连接测试，完整分镜仍需验证。"
                 : "使用火山方舟官方 API（北京区域）。模型需要支持 JSON 输出。"}

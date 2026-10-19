@@ -34,7 +34,7 @@ test.before(async () => {
       OPENAI_API_KEY: "",
       ARK_API_KEY: "",
       DOUBAO_API_KEY: "",
-      OPENAI_MODEL: "",
+      OPENAI_MODEL: "env-default-model",
       DOUBAO_MODEL: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -85,6 +85,7 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
   );
   const settings = await (await call("/api/settings")).json();
   assert.equal(settings.openai.hasKey, false);
+  assert.equal(settings.openai.model, "env-default-model");
   const cfg = await (
     await call(
       "/api/settings",
@@ -97,6 +98,8 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
     )
   ).json();
   assert.equal(cfg.openai.hasKey, true);
+  assert.equal(cfg.openai.model, "test", "saved UI model overrides environment default");
+  assert.equal((await (await call("/api/settings")).json()).openai.model, "test");
   assert.ok(!JSON.stringify(cfg).includes("do-not-return"));
   const imageCfg = await (
     await call(
@@ -175,6 +178,11 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
   assert.equal(reopened.shots[0].storyboardImage, image);
   assert.equal(reopened.shots[0].blocking.camera.x, 62);
   assert.match(reopened.shots[0].prompt, /"x":62/);
+  assert.match(reopened.shots[0].camera, /摄影机\(62,/);
+  assert.match(reopened.shots[0].coverage, /【机位同步】人物站位/);
+  assert.match(reopened.shots[0].lighting, /【机位同步】主光位置/);
+  assert.match(reopened.shots[0].prompt, /空间位置和朝向以此最新草图/);
+  assert.equal(reopened.shots[1].camera, refreshed.shots[1].camera);
   assert.equal(
     (
       await call(
@@ -204,4 +212,38 @@ test("authenticated HTTP workflow: configuration, import, review, persistence an
       .status,
     400,
   );
+});
+
+test("on-demand plan uses only the requested shot and waits for the user's edit to persist", async () => {
+  const { createServer } = await import("node:http");
+  const project = await (await call("/api/example", {})).json();
+  const original = project.shots[0];
+  let answer = { ...original.blocking, camera:{...original.blocking.camera,x:71} };
+  let count = 0;
+  const mock = createServer(async (req,res) => {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const sent = JSON.parse(body);
+    const context = JSON.parse(sent.messages[1].content);
+    assert.equal(context.shot.id, original.id);
+    count++;
+    res.setHeader("Content-Type","application/json");
+    res.end(JSON.stringify({ choices:[{message:{content:JSON.stringify(answer)},finish_reason:"stop"}] }));
+  });
+  await new Promise(resolve => mock.listen(0,"127.0.0.1",resolve));
+  try {
+    await call("/api/settings", { provider:"openai",doubao:{model:""},openai:{key:"mock-only",model:"test",baseUrl:`http://127.0.0.1:${mock.address().port}/v1`} }, "PUT");
+    const planned = await call(`/api/projects/${project.id}/shots/${original.id}/blocking`, {});
+    assert.equal(planned.status, 200);
+    const { blocking } = await planned.json();
+    assert.equal(blocking.camera.x,71);
+    assert.equal(count,1);
+    const unchanged = await (await call(`/api/projects/${project.id}`)).json();
+    assert.equal(unchanged.shots[0].blocking.camera.x,original.blocking.camera.x);
+    const saved = await (await call(`/api/projects/${project.id}/shots/${original.id}`, {...original,blocking}, "PATCH")).json();
+    assert.match(saved.shots[0].prompt,/摄影机\(71,/);
+    answer = {...answer,camera:{...answer.camera,x:900}};
+    assert.equal((await call(`/api/projects/${project.id}/shots/${original.id}/blocking`,{})).status,400);
+    assert.equal((await (await call(`/api/projects/${project.id}`)).json()).shots[0].blocking.camera.x,71);
+  } finally { await new Promise(resolve => mock.close(resolve)); }
 });

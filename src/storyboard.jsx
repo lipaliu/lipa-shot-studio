@@ -1,3 +1,4 @@
+import { syncBlocking } from "../shared/blocking.js";
 import React, { useEffect, useRef, useState, useId } from "react";
 import {
   ArrowLeft,
@@ -146,7 +147,7 @@ export function StoryFrame({ shot, aspect = "16:9", small = false }) {
   );
 }
 
-export function FloorPlan({ value, onChange, readonly = false }) {
+export function FloorPlan({ value, onChange, readonly = false, onInteraction = () => {} }) {
   const svg = useRef(),
     drag = useRef(null),
     [object, setObject] = useState("camera");
@@ -156,7 +157,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
       <div className="plan-empty">
         <Map size={32} />
         <p>这份旧分镜还没有机位数据</p>
-        <small>可手动建立草图；新生成的分镜会请求模型提供站位。</small>
+        <small>可手动建立草图，或在分镜表中按需生成这一镜的机位。</small>
         {!readonly && (
           <button
             className="secondary"
@@ -202,6 +203,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
     if (readonly) return;
     setObject(key);
     drag.current = key;
+    onInteraction(true);
     e.currentTarget.setPointerCapture(e.pointerId);
   }
   function pointer(e) {
@@ -246,8 +248,8 @@ export function FloorPlan({ value, onChange, readonly = false }) {
         className="plan-svg"
         viewBox="0 0 600 400"
         onPointerMove={pointer}
-        onPointerUp={() => (drag.current = null)}
-        onPointerCancel={() => (drag.current = null)}
+        onPointerUp={() => { drag.current = null; onInteraction(false); }}
+        onPointerCancel={() => { drag.current = null; onInteraction(false); }}
         role="group"
         aria-label="俯视机位图，相对站位非实测尺寸"
       >
@@ -512,7 +514,7 @@ export function FloorPlan({ value, onChange, readonly = false }) {
         </div>
       )}
       <p className="plan-note">
-        {value.note} 修改草图后，请同时核对摄影与轴线文字。
+        {value.note} 调整会同步摄影、站位和提示词；相邻镜头需核对轴线。
       </p>
     </div>
   );
@@ -576,7 +578,7 @@ export function Storyboard({
     locked = (project.status === "running" && !sceneComplete) || saving || imageBusy,
     editLocked = project.status === "running" || saving || imageBusy;
   function change(key, value) {
-    setDraft((d) => ({ ...d, [key]: value }));
+    setDraft((d) => key === "blocking" ? syncBlocking(d, value) : ({ ...d, [key]: value }));
     setDirty(true);
   }
   function select(id) {
@@ -590,7 +592,7 @@ export function Storyboard({
     setSaving(true);
     setError("");
     try {
-      await onSave(view);
+      await onSave(view.blocking ? syncBlocking(view, view.blocking) : view);
       setDirty(false);
     } catch (e) {
       setError(e.message);
@@ -776,7 +778,7 @@ export function Storyboard({
           ].map(([k, label]) => (
             <div className="note-section" key={k}>
               <h4>{label}</h4>
-              <p>{shot[k]}</p>
+              <p>{view[k]}</p>
             </div>
           ))}
           <details>

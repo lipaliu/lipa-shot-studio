@@ -96,3 +96,21 @@ body { background: var(--brand); }
 @media (max-width:900px) { .simple-header { padding:0 24px; }.studio-intro { padding:30px 24px; }.studio-intro h1 { font-size:36px; }.workflow-steps { display:none; }.two-windows { padding:0 24px 24px; grid-template-columns:minmax(260px,.43fr) minmax(0,.57fr); }.empty-message h2 { font-size:24px; }.output-empty,.project-view { padding:20px; }.window-heading { padding:18px 20px; }.output-hint { display:none; }.studio-footer { padding:0 24px 24px; }.header-actions { gap:16px; }.has-project .two-windows { grid-template-columns:260px minmax(0,1fr); }.shotmate-wordmark { width:205px; height:25px; } }
 @media (max-width:700px) { .simple-header { height:72px; padding:0 18px; gap:14px; }.shotmate-wordmark { width:158px; height:22px; }.header-actions { gap:9px; }.header-actions .text-button { font-size:11px; gap:4px; }.header-actions .text-button svg { display:none; }.model-button { font-size:11px; padding:8px; gap:4px; }.model-button svg { width:13px; }.studio-intro { padding:29px 20px 26px; }.studio-intro h1 { font-size:39px; }.intro-break { display:block; }.studio-description { font-size:12px; max-width:26em; }.two-windows,.has-project .two-windows { grid-template-columns:1fr; padding:0 14px 22px; gap:16px; }.input-window,.output-window,.has-project .input-window,.has-project .output-window { border-radius:12px; position:static; border:0; }.simple-script,.has-project .simple-script { min-height:220px; height:240px; padding:20px; flex:none; }.input-count { padding:10px 20px 16px; }.optional-settings summary { padding:16px 20px; }.generate-area { padding:18px 20px; }.window-heading { min-height:60px; }.output-hint { display:block; font-size:10px; }.output-empty { padding:18px 18px 0; }.reference-frame { aspect-ratio:16/9; }.reference-frame figcaption { left:8px; right:8px; top:8px; gap:4px; font-size:8px; }.reference-frame figcaption span { padding:4px 5px; }.empty-message { padding:24px 0; }.empty-message h2 { font-size:25px; }.empty-columns { font-size:10px; }.studio-footer { flex-direction:column; gap:5px; padding:0 20px 24px; font-size:10px; }.has-project .studio-intro { padding:22px 20px; }.has-project .studio-intro h1 { font-size:27px; }.has-project .intro-break { display:none; }.project-view { padding:18px; }.modal { padding:22px 20px; }.drawer { border-radius:0; }.table-toolbar { gap:12px; }.board-title { gap:10px; }.board-title > div { gap:8px; }.board-actions > div { flex-wrap:wrap; }.project-sub { overflow-wrap:anywhere; }.main-frame { height:320px; }.frame-tools { flex-wrap:wrap; } }
 @media (max-width:380px) { .shotmate-wordmark { width:132px; }.simple-header { padding:0 14px; }.header-actions { gap:7px; }.model-button { padding:7px 5px; }.studio-intro h1 { font-size:35px; } }
+
+/* Per-shot planning stays next to the table; no separate workspace required. */
+.inline-plan { margin: 16px 0; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #17223f; scroll-margin-top: 20px; }
+.inline-plan-header, .inline-plan-header > div { display:flex; align-items:center; gap:12px; }
+.inline-plan-header { justify-content:space-between; flex-wrap:wrap; margin-bottom:16px; }
+.inline-plan-header [role="status"] { font-size:12px; color:#e6ff42; }
+.inline-plan-grid { display:grid; grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr); gap:24px; }
+.inline-plan h3 { font-size:16px; margin:0 0 12px; }
+.inline-plan h4 { font-size:12px; color:#a8bad4; margin:16px 0 8px; }
+.plan-live-preview > p { white-space:pre-line; line-height:1.7; font-size:13px; overflow-wrap:anywhere; }
+.plan-live-preview .story-frame { max-height:240px; width:100%; background:#111b38; border-radius:8px; }
+.plan-on-demand { padding:28px 12px; text-align:center; }
+.plan-on-demand p { color:#b9c8df; line-height:1.7; }
+.plan-on-demand .primary { display:inline-flex; margin:12px; }
+.plan-on-demand small { display:block; margin-top:12px; color:#a8bad4; }
+.plan-entry { margin-top:12px; }
+.plan-handle:focus-visible { outline:3px solid #ff563b; }
+@media(max-width:900px) { .inline-plan-grid { grid-template-columns:1fr; }.inline-plan { padding:16px; }.inline-plan-header { align-items:flex-start; }.inline-plan .plan-controls { flex-wrap:wrap; } }

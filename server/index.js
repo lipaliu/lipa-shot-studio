@@ -19,6 +19,7 @@ import { startImageTask, finishImageTask } from "./image.js";
 import {
   projectInput,
   shotSchema,
+  blockingSchema,
   scriptLines,
   checkShots,
   timing,
@@ -26,6 +27,7 @@ import {
 } from "./schema.js";
 import { ruleProvenance } from "./rules.js";
 import { runPipeline } from "./pipeline.js";
+import { syncBlocking } from "../shared/blocking.js";
 const app = express(),
   port = Number(process.env.PORT || 4318),
   host = process.env.HOST || "127.0.0.1";
@@ -307,6 +309,21 @@ app.post("/api/projects/:id/review", (req, res) => {
   start(p);
   res.json(serialize(p));
 });
+app.post("/api/projects/:id/shots/:shotId/blocking", async (req, res) => {
+  const p = getProject(req.params.id);
+  if (!p) return res.sendStatus(404);
+  const shot = p.shots.find(s => s.id === req.params.shotId);
+  if (!shot) return res.sendStatus(404);
+  if (p.status === "running") return res.status(409).json({ error: "请等待文字分镜完成。" });
+  const { value } = await requestJSON(selectedProvider(),
+    "你是影视机位规划助手。只返回一个俯视机位 JSON，不生成图片。不改剧情，未明确的空间须在 note 中标注假设。相同场次沿用参考镜头坐标系；避免无意越轴。坐标 x 从左向右、y 从上向下，范围 5–95。",
+    JSON.stringify({ shot, scene: p.outline?.scenes[shot.sceneIndex],
+      references: p.shots.filter(s => s.sceneIndex === shot.sceneIndex && s.blocking && s.id !== shot.id).map(s => ({ id:s.id, blocking:s.blocking })),
+      format: { actors:[{name:"剧中人物",x:30,y:45}], props:[], camera:{x:50,y:85,targetX:50,targetY:45},light:{x:80,y:20},note:"空间假设与机位依据" },
+      rules:"只列本镜人物与原文已有道具。道具需 name,x,y,width,height，宽高5–60。actors/props至多12项。note至多1000字。直接返回该对象。" }),
+    { maxTokens: 2400 });
+  res.json({ blocking: blockingSchema.parse(value) });
+});
 app.patch("/api/projects/:id/shots/:shotId", (req, res) => {
   const p = getProject(req.params.id);
   if (!p) return res.sendStatus(404);
@@ -315,7 +332,9 @@ app.patch("/api/projects/:id/shots/:shotId", (req, res) => {
   const status = z
     .enum(["draft", "approved", "changes"])
     .parse(req.body.status || "draft");
-  const next = shotSchema.parse(req.body);
+  let next = shotSchema.parse(req.body);
+  if (next.blocking && JSON.stringify(next.blocking) !== JSON.stringify(shotSchema.parse(p.shots[i]).blocking))
+    next = shotSchema.parse(syncBlocking(next, next.blocking));
   checkShots([{ ...next, id: req.params.shotId }], scriptLines(p.script));
   const prev = p.shots[i],
     changed = JSON.stringify(shotSchema.parse(prev)) !== JSON.stringify(next);
@@ -408,6 +427,7 @@ app.post("/api/projects/:id/shots/:shotId/image", async (req, res) => {
       `场景：${p.outline?.scenes[shot.sceneIndex]?.name || ""}。`,
       `画面：${shot.description}`,
       `表演：${shot.performance}`,
+      ...(shot.blocking ? [`空间以最新机位草图为准，图中坐标是俯视布局，不是画面像素：${JSON.stringify(shot.blocking)}`] : []),
       `摄影：${shot.framing}；${shot.camera}`,
       `美术与光线：${shot.style}；${shot.artDirection}；${shot.lighting}`,
     ].join("\n").slice(0, 12000);

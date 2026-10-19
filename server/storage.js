@@ -65,7 +65,8 @@ export function config() {
     provider: s.provider || process.env.DEFAULT_PROVIDER || "openai",
     openai: {
       key: openaiKey,
-      model: process.env.OPENAI_MODEL || s.openai?.model || defaultTextModel,
+      // Environment model values initialize defaults; saved UI choices must remain switchable.
+      model: s.openai?.model || process.env.OPENAI_MODEL || defaultTextModel,
       baseUrl:
         s.openai?.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
@@ -75,7 +76,7 @@ export function config() {
         process.env.ARK_API_KEY ||
         s.doubao?.key ||
         "",
-      model: process.env.DOUBAO_MODEL || s.doubao?.model || "",
+      model: s.doubao?.model || process.env.DOUBAO_MODEL || "",
       baseUrl:
         s.doubao?.baseUrl ||
         process.env.DOUBAO_BASE_URL ||

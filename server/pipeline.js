@@ -74,15 +74,7 @@ const draftFormat = {
       pauseSeconds: 1,
       overlap: true,
       timingReason: "对白/动作/反应的秒数依据与不确定性",
-      blocking: {
-        actors: [{ name: "本场人物名", x: 30, y: 45 }],
-        camera: { x: 50, y: 85, targetX: 50, targetY: 45 },
-        light: { x: 80, y: 20 },
-        props: [
-          { name: "剧本已有的桌子", x: 50, y: 45, width: 25, height: 15 },
-        ],
-        note: "建议机位的依据，未知空间需注明是假设",
-      },
+
     },
   ],
 };
@@ -99,7 +91,7 @@ const draftContract = {
   strings:
     "purpose/description/performance/framing/camera/coverage/continuityIn/continuityOut/timingReason 均为非空字符串",
   blocking:
-    "可省略；如提供，所有坐标为 5 到 95，道具宽高为 5 到 60，actors/props 各不超过 12 项",
+    "本阶段省略 blocking，只生成文字分镜；用户需要时逐镜规划机位",
   counts:
     "镜头数量以完整覆盖剧情所需的最少数量为准；短场景通常 3 到 6 镜，禁止按句机械拆镜",
   brevity:
